@@ -13,7 +13,7 @@ export function Navbar({ user, onLogout }) {
       <div className={styles.left}>
         <div className={styles.logo}>📸 FindMe</div>
 
-        {user.role === "customer" && (
+        {user.userType === "customer" && (
           <>
             <button
               className={`${styles.button} ${isActive("explore") ? styles.active : ""}`}
@@ -31,7 +31,7 @@ export function Navbar({ user, onLogout }) {
           </>
         )}
 
-        {user.role === "photographer" && (
+        {user.userType === "photographer" && (
           <>
             <button
               className={`${styles.button} ${isActive("gallery") ? styles.active : ""}`}
@@ -54,7 +54,7 @@ export function Navbar({ user, onLogout }) {
       <div className={styles.right}>
         <button
           className={styles.button}
-          onClick={() => navigate(`/${user.role}/profile`)}
+          onClick={() => navigate(`/${user.userType}/profile`)}
         >
           Profile
         </button>

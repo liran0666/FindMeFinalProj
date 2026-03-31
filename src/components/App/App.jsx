@@ -4,7 +4,7 @@ import {
   Route,
   Navigate,
 } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 
 import { LoginPage, RegisterPage } from "../Auth/Auth";
 import { Navbar } from "../Layout/Navbar.jsx";
@@ -12,95 +12,129 @@ import { Navbar } from "../Layout/Navbar.jsx";
 import CustomerRoutes from "../../Routes/CustomerRoutes.jsx";
 import PhotographerRoutes from "../../Routes/PhotographerRoutes";
 
-// Demo users
-const DEMO_USERS = {
-  customer: { fullName: "דנה כהן", username: "dana_c", role: "customer" },
-  photographer: {
-    fullName: "יונתן לוי",
-    username: "yonatan_photos",
-    role: "photographer",
-  },
-};
+const AUTH_BASE_URL = "http://localhost:5000/api/auth";
 
 export default function App() {
   const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const didFetch = useRef(false);
 
-  const handleLogin = (data) => {
-    const loggedUser = data.role ? data : DEMO_USERS.photographer;
-    setUser(loggedUser);
+  useEffect(() => {
+    if (didFetch.current) return;
+    didFetch.current = true;
+
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setLoading(false);
+      return;
+    }
+
+    fetch(`${AUTH_BASE_URL}/me`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.user) setUser(data.user);
+        else localStorage.removeItem("token");
+      })
+      .catch(() => localStorage.removeItem("token"))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const handleLogin = async (formData) => {
+    const res = await fetch(`${AUTH_BASE_URL}/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(formData),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || "Login failed");
+    localStorage.setItem("token", data.token);
+    setUser(data.user);
+  };
+
+  const handleRegister = async (formData) => {
+    const res = await fetch(`${AUTH_BASE_URL}/register`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(formData),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || "Registration failed");
+    localStorage.setItem("token", data.token);
+    setUser(data.user);
   };
 
   const handleLogout = () => {
+    localStorage.removeItem("token");
     setUser(null);
   };
 
+  if (loading) return null;
+  console.log("USER OBJECT:", JSON.stringify(user));
   return (
     <Router>
       {user && <Navbar user={user} onLogout={handleLogout} />}
-
-      
-
       <Routes>
-        {/* Auth */}
         <Route
           path="/login"
           element={
-            !user ? <LoginPage onLogin={handleLogin} /> : <Navigate to="/" />
+            !user ? (
+              <LoginPage onLogin={handleLogin} />
+            ) : (
+              <Navigate to="/" replace />
+            )
           }
         />
         <Route
           path="/register"
           element={
             !user ? (
-              <RegisterPage onRegister={handleLogin} />
+              <RegisterPage onRegister={handleRegister} />
             ) : (
-              <Navigate to="/" />
+              <Navigate to="/" replace />
             )
           }
         />
-
-        {/* Protected routes */}
         <Route
           path="/customer/*"
           element={
-            user?.role === "customer" ? (
+            user?.userType === "customer" ? (
               <CustomerRoutes user={user} />
             ) : (
-              <Navigate to="/login" />
+              <Navigate to="/login" replace />
             )
           }
         />
-
         <Route
           path="/photographer/*"
           element={
-            user?.role === "photographer" ? (
+            user?.userType === "photographer" ? (
               <PhotographerRoutes user={user} />
             ) : (
-              <Navigate to="/login" />
+              <Navigate to="/login" replace />
             )
           }
         />
-
-        {/* Default redirect */}
         <Route
           path="/"
           element={
             user ? (
               <Navigate
                 to={
-                  user.role === "photographer" ? "/photographer" : "/customer"
+                  user.userType === "photographer"
+                    ? "/photographer"
+                    : "/customer"
                 }
+                replace
               />
             ) : (
-              <Navigate to="/login" />
+              <Navigate to="/login" replace />
             )
           }
         />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>
   );
 }
-
-
-

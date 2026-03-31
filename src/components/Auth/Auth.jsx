@@ -4,10 +4,21 @@ import { useState } from "react";
 import styles from "./Auth.module.css";
 
 export function LoginPage({ onLogin }) {
-  const [form, setForm] = useState({ username: "", password: "" });
+  const [form, setForm] = useState({ email: "", password: "" });
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
 
-  const handleSubmit = () => {
-    if (form.username && form.password) onLogin?.({ ...form });
+  const handleSubmit = async () => {
+    if (!form.email || !form.password) return;
+    setError("");
+    setBusy(true);
+    try {
+      await onLogin?.({ ...form });
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
@@ -20,15 +31,13 @@ export function LoginPage({ onLogin }) {
         </div>
 
         <div className={styles.formGroup}>
-          <label className={styles.formLabel}>שם משתמש</label>
+          <label className={styles.formLabel}>אימייל</label>
           <input
             className={styles.formInput}
-            type="text"
-            placeholder="הכנס שם משתמש"
-            value={form.username}
-            onChange={(e) =>
-              setForm((f) => ({ ...f, username: e.target.value }))
-            }
+            type="email"
+            placeholder="הכנס אימייל"
+            value={form.email}
+            onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
           />
         </div>
 
@@ -45,8 +54,14 @@ export function LoginPage({ onLogin }) {
           />
         </div>
 
-        <button className={styles.authSubmitBtn} onClick={handleSubmit}>
-          התחבר
+        {error && <p style={{ color: "red", fontSize: 13 }}>{error}</p>}
+
+        <button
+          className={styles.authSubmitBtn}
+          onClick={handleSubmit}
+          disabled={busy}
+        >
+          {busy ? "מתחבר..." : "התחבר"}
         </button>
 
         <p className={styles.authSwitchText}>
@@ -61,14 +76,26 @@ export function LoginPage({ onLogin }) {
 export function RegisterPage({ onRegister }) {
   const [role, setRole] = useState("customer");
   const [form, setForm] = useState({
-    fullName: "",
     username: "",
+    email: "",
     password: "",
+    age: "",
+    city: "",
   });
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
 
-  const handleSubmit = () => {
-    if (form.fullName && form.username && form.password)
-      onRegister?.({ ...form, role });
+  const handleSubmit = async () => {
+    if (!form.username || !form.email || !form.password) return;
+    setError("");
+    setBusy(true);
+    try {
+      await onRegister?.({ ...form, userType: role });
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
@@ -108,14 +135,21 @@ export function RegisterPage({ onRegister }) {
         </div>
 
         {[
-          { key: "fullName", label: "שם מלא", placeholder: "ישראל ישראלי" },
           { key: "username", label: "שם משתמש", placeholder: "username" },
+          {
+            key: "email",
+            label: "אימייל",
+            placeholder: "example@email.com",
+            type: "email",
+          },
           {
             key: "password",
             label: "סיסמה",
             placeholder: "••••••••",
             type: "password",
           },
+          { key: "city", label: "עיר", placeholder: "תל אביב" },
+          { key: "age", label: "גיל", placeholder: "25", type: "number" },
         ].map((f) => (
           <div className={styles.formGroup} key={f.key}>
             <label className={styles.formLabel}>{f.label}</label>
@@ -131,8 +165,14 @@ export function RegisterPage({ onRegister }) {
           </div>
         ))}
 
-        <button className={styles.authSubmitBtn} onClick={handleSubmit}>
-          יצירת חשבון
+        {error && <p style={{ color: "red", fontSize: 13 }}>{error}</p>}
+
+        <button
+          className={styles.authSubmitBtn}
+          onClick={handleSubmit}
+          disabled={busy}
+        >
+          {busy ? "יוצר חשבון..." : "יצירת חשבון"}
         </button>
 
         <p className={styles.authSwitchText}>

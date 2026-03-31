@@ -1,0 +1,37 @@
+import express from "express";
+import cors from "cors";
+import dotenv from "dotenv";
+import authRoutes from "./routes/auth.js";
+import getDB from "./db.js";
+
+dotenv.config();
+
+const app = express();
+const PORT = process.env.PORT || 5000;
+
+app.use(
+  cors({
+    origin: ["http://localhost:5173", "http://localhost:3000"],
+    credentials: true,
+  }),
+);
+app.use(express.json());
+
+app.use("/api/auth", authRoutes);
+
+async function startServer() {
+  try {
+    const db = getDB();
+    await db.query("SELECT 1"); // lightweight ping
+    console.log("✅ MySQL connected successfully");
+
+    app.listen(PORT, () => {
+      console.log(`🚀 Server running on http://localhost:${PORT}`);
+    });
+  } catch (err) {
+    console.error("❌ Failed to connect to MySQL:", err.message);
+    process.exit(1); // stop the server if DB is unreachable
+  }
+}
+
+startServer();
