@@ -11,7 +11,13 @@ export function Navbar({ user, onLogout }) {
     <div className={styles.navbar}>
       {/* LEFT */}
       <div className={styles.left}>
-        <div className={styles.logo}>📸 FindMe</div>
+        <div
+          className={styles.logo}
+          onClick={() => navigate(`/${user.userType}`)}
+          title="Home"
+        >
+          📸 FindMe
+        </div>
 
         {user.userType === "customer" && (
           <>

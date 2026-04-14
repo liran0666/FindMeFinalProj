@@ -30,6 +30,12 @@
   font-weight: 700;
   color: white;
   margin-right: 16px;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.logo:hover {
+  opacity: 0.8;
 }
 
 .button {

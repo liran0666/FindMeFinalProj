@@ -1,23 +1,9 @@
 // PhotographerProfile.jsx - View photographer + send proposal
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import styles from "./PhotographerProfile.module.css";
 
-const MOCK_PACKAGES = [
-  { id: 1, name: "בסיסי", price: 800, desc: "4 שעות צילום, 100 תמונות ערוכות" },
-  {
-    id: 2,
-    name: "פרימיום",
-    price: 1400,
-    desc: "8 שעות צילום, 250 תמונות, אלבום דיגיטלי",
-  },
-  {
-    id: 3,
-    name: "VIP",
-    price: 2200,
-    desc: "יום שלם, 500 תמונות, אלבום מודפס, וידאו",
-  },
-];
 
 const MOCK_REVIEWS = [
   {
@@ -55,40 +41,93 @@ const EVENT_TYPES = [
   "אחר",
 ];
 
-export function PhotographerProfile({ photographer, onBack }) {
+export function PhotographerProfile() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const [photographer, setPhotographer] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [sent, setSent] = useState(false);
-  const [selectedPackage, setSelectedPackage] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [proposalError, setProposalError] = useState("");
   const [proposal, setProposal] = useState({
     eventType: "",
     date: "",
     location: "",
     description: "",
-    package: "",
   });
 
-  const p = photographer || {
-    id: 1,
-    name: "יונתן לוי",
-    username: "yonatan_photos",
-    location: "תל אביב",
-    rating: 4.9,
-    reviews: 128,
-    price: 800,
-    specialties: ["חתונות", "אירועים", "פורטרט"],
-    emoji: "🎭",
-    bio: "צלם מקצועי עם ניסיון של 10 שנים. מתמחה בצילום חתונות ואירועים מיוחדים. כל אירוע הוא סיפור ייחודי שאני שמח לתעד עבורכם.",
+  useEffect(() => {
+    fetch(`http://localhost:5000/api/auth/photographers/${id}`)
+      .then((r) => r.json())
+      .then((data) => setPhotographer(data))
+      .catch((err) => console.error("Failed to load photographer:", err))
+      .finally(() => setLoading(false));
+  }, [id]);
+
+  if (loading) return <div style={{ padding: 40, color: "white" }}>טוען...</div>;
+  if (!photographer) return <div style={{ padding: 40, color: "white" }}>צלם לא נמצא</div>;
+
+  const services = [
+    photographer.service1Name,
+    photographer.service2Name,
+    photographer.service3Name,
+  ].filter(Boolean);
+
+  const calcAge = (dob) => {
+    if (!dob) return null;
+    const today = new Date();
+    const birth = new Date(dob);
+    let age = today.getFullYear() - birth.getFullYear();
+    const m = today.getMonth() - birth.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
+    return age;
   };
 
-  const handleSendProposal = () => {
-    if (proposal.eventType && proposal.date && proposal.location) {
+  const p = {
+    ...photographer,
+    name: photographer.userName,
+    location: photographer.city || "לא צוין",
+    rating: photographer.rating >= 0 ? photographer.rating : null,
+    age: calcAge(photographer.dateOfBirth),
+    services,
+    emoji: "📸",
+  };
+
+  const handleSendProposal = async () => {
+    if (!proposal.eventType || !proposal.date || !proposal.location) {
+      setProposalError("אנא מלא את כל השדות הנדרשים");
+      return;
+    }
+    setProposalError("");
+    setSubmitting(true);
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch("http://localhost:5000/api/events", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          photographerId: photographer.id,
+          name: proposal.eventType,
+          date: proposal.date,
+          place: proposal.location,
+        }),
+      });
+      if (!res.ok) throw new Error("שגיאה בשליחת הבקשה");
       setSent(true);
+    } catch (err) {
+      setProposalError(err.message);
+    } finally {
+      setSubmitting(false);
     }
   };
 
   return (
     <div className={styles.page}>
-      <button className={styles.backBtn} onClick={onBack}>
+      <button className={styles.backBtn} onClick={() => navigate(-1)}>
         ← חזרה לחיפוש
       </button>
 
@@ -101,10 +140,12 @@ export function PhotographerProfile({ photographer, onBack }) {
             <div className={styles.heroName}>{p.name}</div>
             <div className={styles.heroMeta}>
               <span className={styles.heroRating}>
-                ⭐ {p.rating} ({p.reviews} ביקורות)
+                {p.rating !== null ? `⭐ ${p.rating}` : "אין דירוג עדיין"}
               </span>
               <span className={styles.heroMetaItem}>📍 {p.location}</span>
-              <span className={styles.heroMetaItem}>💰 החל מ-₪{p.price}</span>
+              {p.age !== null && (
+                <span className={styles.heroMetaItem}>🎂 גיל {p.age}</span>
+              )}
             </div>
             <div className={styles.heroActions}>
               <button
@@ -127,35 +168,17 @@ export function PhotographerProfile({ photographer, onBack }) {
             <p className={styles.bio}>{p.bio}</p>
           </div>
 
-          <div className={styles.sectionCard}>
-            <div className={styles.sectionTitle}>🎨 התמחויות</div>
-            <div className={styles.specialties}>
-              {p.specialties.map((s) => (
-                <span key={s} className={styles.specialtyTag}>
-                  {s}
-                </span>
-              ))}
+          {p.services.length > 0 && (
+            <div className={styles.sectionCard}>
+              <div className={styles.sectionTitle}>🎨 שירותים</div>
+              <div className={styles.specialties}>
+                {p.services.map((s) => (
+                  <span key={s} className={styles.specialtyTag}>{s}</span>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
-          <div className={styles.sectionCard}>
-            <div className={styles.sectionTitle}>📦 חבילות</div>
-            <div className={styles.packages}>
-              {MOCK_PACKAGES.map((pkg) => (
-                <div
-                  key={pkg.id}
-                  className={`${styles.packageCard} ${selectedPackage === pkg.id ? styles.selected : ""}`}
-                  onClick={() => setSelectedPackage(pkg.id)}
-                >
-                  <div className={styles.packageHeader}>
-                    <span className={styles.packageName}>{pkg.name}</span>
-                    <span className={styles.packagePrice}>₪{pkg.price}</span>
-                  </div>
-                  <div className={styles.packageDesc}>{pkg.desc}</div>
-                </div>
-              ))}
-            </div>
-          </div>
 
           <div className={styles.sectionCard}>
             <div className={styles.sectionTitle}>⭐ ביקורות</div>
@@ -185,7 +208,7 @@ export function PhotographerProfile({ photographer, onBack }) {
             <div className={styles.sectionTitle}>📊 נתונים</div>
             <div className={styles.statsList}>
               {[
-                { icon: "⭐", label: "דירוג ממוצע", value: `${p.rating}/5` },
+                { icon: "⭐", label: "דירוג ממוצע", value: p.rating !== null ? `${p.rating}/5` : "—" },
                 { icon: "📸", label: "אירועים שצולמו", value: "247" },
                 { icon: "👥", label: "לקוחות חוזרים", value: "68%" },
                 { icon: "⚡", label: "זמן תגובה", value: "< שעה" },
@@ -210,6 +233,8 @@ export function PhotographerProfile({ photographer, onBack }) {
           onClick={() => {
             setModalOpen(false);
             setSent(false);
+            setProposalError("");
+            setProposal({ eventType: "", date: "", location: "", description: "" });
           }}
         >
           <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
@@ -218,6 +243,8 @@ export function PhotographerProfile({ photographer, onBack }) {
               onClick={() => {
                 setModalOpen(false);
                 setSent(false);
+                setProposalError("");
+                setProposal({ eventType: "", date: "", location: "", description: "" });
               }}
             >
               ×
@@ -296,18 +323,26 @@ export function PhotographerProfile({ photographer, onBack }) {
                   />
                 </div>
 
+                {proposalError && (
+                  <p style={{ color: "#f87171", fontSize: 13, marginBottom: 8 }}>
+                    {proposalError}
+                  </p>
+                )}
+
                 <div className={styles.modalActions}>
                   <button
                     className={styles.modalCancelBtn}
                     onClick={() => setModalOpen(false)}
+                    disabled={submitting}
                   >
                     ביטול
                   </button>
                   <button
                     className={styles.modalSubmitBtn}
                     onClick={handleSendProposal}
+                    disabled={submitting}
                   >
-                    שלח הצעה 🚀
+                    {submitting ? "שולח..." : "שלח הצעה 🚀"}
                   </button>
                 </div>
               </>

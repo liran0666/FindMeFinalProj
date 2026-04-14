@@ -1,122 +1,87 @@
-// PhotographerExplore.jsx - Customer view to browse photographers
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import styles from "./PhotographerExplore.module.css";
 
-const MOCK_PHOTOGRAPHERS = [
-  {
-    id: 1,
-    name: "יונתן לוי",
-    username: "yonatan_photos",
-    location: "תל אביב",
-    rating: 4.9,
-    reviews: 128,
-    price: 800,
-    specialties: ["חתונות", "אירועים", "פורטרט"],
-    badge: "top",
-    emoji: "🎭",
-  },
-  {
-    id: 2,
-    name: "מיכל כהן",
-    username: "michal_lens",
-    location: "ירושלים",
-    rating: 4.7,
-    reviews: 84,
-    price: 650,
-    specialties: ["בר מצווה", "ילדים", "משפחה"],
-    badge: null,
-    emoji: "🌸",
-  },
-  {
-    id: 3,
-    name: "אורי גלעד",
-    username: "uri.captures",
-    location: "חיפה",
-    rating: 4.8,
-    reviews: 56,
-    price: 700,
-    specialties: ["נוף", "עסקי", "מוצרים"],
-    badge: "new",
-    emoji: "🏔️",
-  },
-  {
-    id: 4,
-    name: "שירה בן-דוד",
-    username: "shira_photo",
-    location: "רמת גן",
-    rating: 5.0,
-    reviews: 203,
-    price: 1200,
-    specialties: ["חתונות", "הריון", "ניובורן"],
-    badge: "top",
-    emoji: "✨",
-  },
-  {
-    id: 5,
-    name: "אמיר שלום",
-    username: "amir_visual",
-    location: "באר שבע",
-    rating: 4.6,
-    reviews: 41,
-    price: 500,
-    specialties: ["ספורט", "אירועים", "קונצרטים"],
-    badge: null,
-    emoji: "⚡",
-  },
-  {
-    id: 6,
-    name: "נועה פישר",
-    username: "noa_fisher_photo",
-    location: "נתניה",
-    rating: 4.8,
-    reviews: 97,
-    price: 900,
-    specialties: ["חתונות", "אירועים", "פורטרט"],
-    badge: null,
-    emoji: "🦋",
-  },
-];
+function calcAge(dob) {
+  if (!dob) return null;
+  const today = new Date();
+  const birth = new Date(dob);
+  let age = today.getFullYear() - birth.getFullYear();
+  const m = today.getMonth() - birth.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
+  return age;
+}
 
-const SPECIALTIES = ["הכל", "חתונות", "ילדים", "אירועים", "פורטרט", "עסקי"];
-const SORT_OPTIONS = [
-  { value: "rating", label: "לפי דירוג" },
-  { value: "price_asc", label: "מחיר עולה" },
-  { value: "price_desc", label: "מחיר יורד" },
-  { value: "reviews", label: "לפי ביקורות" },
-];
+export function PhotographerExplore() {
+  const navigate = useNavigate();
+  const [photographers, setPhotographers] = useState([]);
+  const [search, setSearch]     = useState("");
+  const [sort, setSort]         = useState("rating");
+  const [cityFilter, setCityFilter]       = useState("");
+  const [minAge, setMinAge]               = useState("");
+  const [maxAge, setMaxAge]               = useState("");
+  const [minRating, setMinRating]         = useState("");
+  const [filtersOpen, setFiltersOpen]     = useState(false);
 
-export function PhotographerExplore({ onSelectPhotographer }) {
-  const [search, setSearch] = useState("");
-  const [specialty, setSpecialty] = useState("הכל");
-  const [sort, setSort] = useState("rating");
+  useEffect(() => {
+    fetch("http://localhost:5000/api/auth/photographers")
+      .then((r) => r.json())
+      .then((data) => setPhotographers(data))
+      .catch((err) => console.error(err));
+  }, []);
 
-  const filtered = MOCK_PHOTOGRAPHERS.filter((p) => {
-    const matchSearch =
-      p.name.includes(search) ||
-      p.location.includes(search) ||
-      p.username.includes(search);
-    const matchSpec = specialty === "הכל" || p.specialties.includes(specialty);
-    return matchSearch && matchSpec;
-  }).sort((a, b) => {
-    if (sort === "rating") return b.rating - a.rating;
-    if (sort === "price_asc") return a.price - b.price;
-    if (sort === "price_desc") return b.price - a.price;
-    if (sort === "reviews") return b.reviews - a.reviews;
-    return 0;
-  });
+  const formatted = photographers.map((p) => ({
+    ...p,
+    name: p.userName,
+    location: p.city || "לא צוין",
+    rating: p.rating >= 0 ? p.rating : null,
+    age: calcAge(p.dateOfBirth),
+    services: [p.service1Name, p.service2Name, p.service3Name].filter(Boolean),
+    emoji: "📸",
+  }));
+
+  const activeFilterCount = [cityFilter, minAge, maxAge, minRating].filter(Boolean).length;
+
+  const clearFilters = () => {
+    setCityFilter("");
+    setMinAge("");
+    setMaxAge("");
+    setMinRating("");
+  };
+
+  const filtered = formatted
+    .filter((p) => {
+      if (search && !p.name.includes(search) && !p.location.includes(search)) return false;
+      if (cityFilter && !p.location.toLowerCase().includes(cityFilter.toLowerCase())) return false;
+      if (minAge && (p.age === null || p.age < Number(minAge))) return false;
+      if (maxAge && (p.age === null || p.age > Number(maxAge))) return false;
+      if (minRating && (p.rating === null || p.rating < Number(minRating))) return false;
+      return true;
+    })
+    .sort((a, b) => {
+      if (sort === "rating") {
+        if (a.rating === null && b.rating === null) return 0;
+        if (a.rating === null) return 1;
+        if (b.rating === null) return -1;
+        return b.rating - a.rating;
+      }
+      if (sort === "name") return a.name.localeCompare(b.name, "he");
+      return 0;
+    });
 
   return (
     <div className={styles.page}>
+      {/* Hero */}
       <div className={styles.searchHero}>
         <h1 className={styles.searchHeroTitle}>
           מצא את הצלם <span>המושלם</span> לך
         </h1>
         <p className={styles.searchHeroSub}>מאות צלמים מקצועיים מכל הארץ</p>
+
         <div className={styles.searchBar}>
           <input
             className={styles.searchInput}
-            placeholder="חפש לפי שם, עיר, סגנון..."
+            placeholder="חפש לפי שם, עיר..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -124,45 +89,117 @@ export function PhotographerExplore({ onSelectPhotographer }) {
         </div>
       </div>
 
-      <div className={styles.filterBar}>
-        <span className={styles.filterLabel}>סנן:</span>
-        <div className={styles.filterChips}>
-          {SPECIALTIES.map((s) => (
+      {/* Filter + sort bar */}
+      <div className={styles.controlBar}>
+        <button
+          className={`${styles.filterToggleBtn} ${filtersOpen ? styles.filterToggleBtnActive : ""}`}
+          onClick={() => setFiltersOpen((o) => !o)}
+        >
+          🔧 סינון
+          {activeFilterCount > 0 && (
+            <span className={styles.filterBadge}>{activeFilterCount}</span>
+          )}
+        </button>
+
+        <div className={styles.sortRow}>
+          <span className={styles.sortLabel}>מיין לפי:</span>
+          {[
+            { value: "rating", label: "⭐ דירוג" },
+            { value: "name",   label: "🔤 שם" },
+          ].map((o) => (
             <button
-              key={s}
-              className={`${styles.filterChip} ${specialty === s ? styles.active : ""}`}
-              onClick={() => setSpecialty(s)}
+              key={o.value}
+              className={`${styles.sortBtn} ${sort === o.value ? styles.sortBtnActive : ""}`}
+              onClick={() => setSort(o.value)}
             >
-              {s}
+              {o.label}
             </button>
           ))}
         </div>
-        <select
-          className={styles.filterSelect}
-          value={sort}
-          onChange={(e) => setSort(e.target.value)}
-        >
-          {SORT_OPTIONS.map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
-            </option>
-          ))}
-        </select>
+
+        <span className={styles.resultsCount}>{filtered.length} צלמים</span>
       </div>
 
+      {/* Expandable filter panel */}
+      {filtersOpen && (
+        <div className={styles.filterPanel}>
+          <div className={styles.filterPanelGrid}>
+
+            <div className={styles.filterField}>
+              <label className={styles.filterFieldLabel}>📍 עיר</label>
+              <input
+                className={styles.filterInput}
+                placeholder="לדוגמה: תל אביב"
+                value={cityFilter}
+                onChange={(e) => setCityFilter(e.target.value)}
+              />
+            </div>
+
+            <div className={styles.filterField}>
+              <label className={styles.filterFieldLabel}>🎂 גיל מינימלי</label>
+              <input
+                className={styles.filterInput}
+                type="number"
+                placeholder="18"
+                min="16"
+                max="120"
+                value={minAge}
+                onChange={(e) => setMinAge(e.target.value)}
+              />
+            </div>
+
+            <div className={styles.filterField}>
+              <label className={styles.filterFieldLabel}>🎂 גיל מקסימלי</label>
+              <input
+                className={styles.filterInput}
+                type="number"
+                placeholder="70"
+                min="16"
+                max="120"
+                value={maxAge}
+                onChange={(e) => setMaxAge(e.target.value)}
+              />
+            </div>
+
+            <div className={styles.filterField}>
+              <label className={styles.filterFieldLabel}>⭐ דירוג מינימלי</label>
+              <select
+                className={styles.filterInput}
+                value={minRating}
+                onChange={(e) => setMinRating(e.target.value)}
+              >
+                <option value="">כולם</option>
+                <option value="1">1+</option>
+                <option value="2">2+</option>
+                <option value="3">3+</option>
+                <option value="4">4+</option>
+                <option value="4.5">4.5+</option>
+              </select>
+            </div>
+          </div>
+
+          {activeFilterCount > 0 && (
+            <button className={styles.clearFiltersBtn} onClick={clearFilters}>
+              ✕ נקה סינונים
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Grid */}
       <div className={styles.grid}>
         {filtered.length === 0 ? (
           <div className={styles.emptyState}>
             <div className={styles.emptyStateIcon}>🔍</div>
             <h3 className={styles.emptyStateTitle}>לא נמצאו צלמים</h3>
-            <p>נסה לשנות את פרמטרי החיפוש</p>
+            <p>נסה לשנות את הסינון</p>
           </div>
         ) : (
           filtered.map((p) => (
             <PhotographerCard
               key={p.id}
               photographer={p}
-              onClick={() => onSelectPhotographer?.(p)}
+              onClick={() => navigate(`/customer/photographer/${p.id}`)}
             />
           ))
         )}
@@ -176,36 +213,30 @@ function PhotographerCard({ photographer: p, onClick }) {
     <div className={styles.card} onClick={onClick}>
       <div className={styles.cardImageWrap}>
         <div className={styles.cardImagePlaceholder}>{p.emoji}</div>
-        {p.badge && (
-          <span
-            className={`${styles.cardBadge} ${p.badge === "top" ? styles.badgeTop : styles.badgeNew}`}
-          >
-            {p.badge === "top" ? "🏆 מוביל" : "✨ חדש"}
-          </span>
-        )}
       </div>
+
       <div className={styles.cardBody}>
         <div className={styles.cardHeader}>
           <div className={styles.cardName}>{p.name}</div>
           <div className={styles.cardRating}>
-            <span className={styles.cardRatingStar}>⭐</span>
-            <span className={styles.cardRatingValue}>{p.rating}</span>
+            {p.rating !== null ? `⭐ ${p.rating}` : "חדש"}
           </div>
         </div>
-        <div className={styles.cardLocation}>
-          📍 {p.location} · {p.reviews} ביקורות
+
+        <div className={styles.cardMeta}>
+          <span>📍 {p.location}</span>
+          {p.age !== null && <span>🎂 גיל {p.age}</span>}
         </div>
-        <div className={styles.cardSpecialties}>
-          {p.specialties.map((s) => (
-            <span key={s} className={styles.specialty}>
-              {s}
-            </span>
-          ))}
-        </div>
+
+        {p.services.length > 0 && (
+          <div className={styles.cardServices}>
+            {p.services.map((s) => (
+              <span key={s} className={styles.cardServiceTag}>{s}</span>
+            ))}
+          </div>
+        )}
+
         <div className={styles.cardFooter}>
-          <div className={styles.cardPrice}>
-            החל מ- <span className={styles.cardPriceValue}>₪{p.price}</span>
-          </div>
           <button className={styles.cardCta}>צפה בפרופיל</button>
         </div>
       </div>

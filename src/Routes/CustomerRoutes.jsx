@@ -9,7 +9,7 @@ export default function CustomerRoutes({ user }) {
     <Routes>
       <Route path="/" element={<PhotographerExplore />} />
       <Route path="/explore" element={<PhotographerExplore />} />
-      <Route path="/photographer/:id" element={<PhotographerProfile />} />
+      <Route path="/photographer/:id" element={<PhotographerProfile user={user} />} />
       <Route path="/events" element={<CustomerEventsPage />} />
       <Route path="/profile" element={<ProfilePage user={user} />} />
 

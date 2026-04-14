@@ -1,79 +1,17 @@
-// PhotographerDashboard.jsx - Main dashboard for photographers
+// PhotographerDashboard.jsx
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import styles from "./PhotographerDashboard.module.css";
 
-const INITIAL_PROPOSALS = [
-  {
-    id: 1,
-    customerName: "דנה כהן",
-    eventType: "חתונה",
-    date: "13/06/26",
-    location: "אולם פסגות, תל אביב",
-    status: "pending",
-    isNew: true,
-  },
-  {
-    id: 2,
-    customerName: "אבי לוי",
-    eventType: "בר מצווה",
-    date: "29/03/27",
-    location: "מלון ים המלח",
-    status: "pending",
-    isNew: false,
-  },
-  {
-    id: 3,
-    customerName: "רחל שמש",
-    eventType: "יום הולדת 50",
-    date: "22/04/26",
-    location: "גן אירועים, רמת גן",
-    status: "pending",
-    isNew: false,
-  },
-];
-
-const PAST_EVENTS = [
-  {
-    id: 1,
-    customerName: "מירב כץ",
-    eventType: "חתונה של צירו",
-    date: "13",
-    month: "יוני",
-    year: "26",
-    location: "קיסריה",
-    photos: 342,
-    status: "completed",
-  },
-  {
-    id: 2,
-    customerName: "שמחה לוינגר",
-    eventType: "הכרמינה של בנחיו",
-    date: "29",
-    month: "מרץ",
-    year: "27",
-    location: "ירושלים",
-    photos: 187,
-    status: "upcoming",
-  },
-  {
-    id: 3,
-    customerName: "ניקולס פרנק",
-    eventType: "הגירה של מיקח",
-    date: "05",
-    month: "דצמ",
-    year: "25",
-    location: "חיפה",
-    photos: 256,
-    status: "completed",
-  },
+const HEBREW_MONTHS = [
+  "ינו", "פבר", "מרץ", "אפר", "מאי", "יוני",
+  "יולי", "אוג", "ספט", "אוק", "נוב", "דצמ",
 ];
 
 const EVENT_ICONS = {
   חתונה: "💍",
   "בר מצווה": "✡️",
   "יום הולדת": "🎂",
-  "בר מצווה": "🕍",
   אחר: "📸",
   הכרמינה: "🎼",
   הגירה: "✈️",
@@ -84,169 +22,241 @@ function getEventIcon(type) {
   return match ? match[1] : "📸";
 }
 
-export function PhotographerDashboard({ user }) {
-  const [proposals, setProposals] = useState(INITIAL_PROPOSALS);
+function isPast(dateVal) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const d = new Date(dateVal);
+  d.setHours(0, 0, 0, 0);
+  return d < today;
+}
 
-  const handleProposal = (id, action) => {
-    setProposals((prev) =>
-      prev.map((p) =>
-        p.id === id ? { ...p, status: action, isNew: false } : p,
-      ),
-    );
+function isToday(dateVal) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const d = new Date(dateVal);
+  d.setHours(0, 0, 0, 0);
+  return d.getTime() === today.getTime();
+}
+
+const API = "http://localhost:5000/api/events";
+
+export function PhotographerDashboard({ user }) {
+  const [requests, setRequests] = useState([]);   // status = "pending"
+  const [events, setEvents] = useState([]);        // status = "active"
+  const [loading, setLoading] = useState(true);
+
+  const fetchEvents = () => {
+    const token = localStorage.getItem("token");
+    return fetch(`${API}/photographer`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.events) {
+          setRequests(data.events.filter((e) => e.status === "pending"));
+          setEvents(data.events.filter((e) => e.status === "active"));
+        }
+      })
+      .catch((err) => console.error("Failed to load events:", err))
+      .finally(() => setLoading(false));
   };
 
-  const pendingCount = proposals.filter((p) => p.status === "pending").length;
+  useEffect(() => { fetchEvents(); }, []);
+
+  const handleAction = async (id, action) => {
+    // action: "active" (accept) | "declined" (decline)
+    const token = localStorage.getItem("token");
+    try {
+      await fetch(`${API}/${id}/status`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ status: action }),
+      });
+      // update local state instead of re-fetching
+      const req = requests.find((r) => r.id === id);
+      setRequests((prev) => prev.filter((r) => r.id !== id));
+      if (action === "active" && req) {
+        setEvents((prev) => [...prev, { ...req, status: "active" }]);
+      }
+    } catch (err) {
+      console.error("Failed to update event status:", err);
+    }
+  };
+
+  // split active events by date
+  const pastEvents     = events.filter((e) => isPast(e.date));
+  const todayEvents    = events.filter((e) => isToday(e.date));
+  const upcomingEvents = events.filter((e) => !isPast(e.date) && !isToday(e.date));
+
+  const renderEventRow = (ev) => {
+    const d = new Date(ev.date);
+    const day   = String(d.getDate()).padStart(2, "0");
+    const month = HEBREW_MONTHS[d.getMonth()];
+    const past  = isPast(ev.date);
+    const today = isToday(ev.date);
+
+    return (
+      <div key={ev.id} className={styles.eventRow}>
+        <div className={styles.eventDate}>
+          <div className={styles.eventDateDay}>{day}</div>
+          <div className={styles.eventDateMonth}>{month}</div>
+        </div>
+        <div className={styles.eventInfo}>
+          <div className={styles.eventTitle}>
+            {getEventIcon(ev.name)} {ev.name}
+          </div>
+          <div className={styles.eventMeta}>
+            <span>📍 {ev.place}</span>
+          </div>
+        </div>
+        <span
+          className={`${styles.statusBadge} ${
+            past ? styles.statusAccepted : styles.statusPending
+          }`}
+        >
+          {past ? "הושלם" : today ? "היום" : "קרוב"}
+        </span>
+        <div className={styles.eventActions}>
+          <button className={styles.viewBtn}>פרטים</button>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className={styles.page}>
       <div className={styles.pageTitle}>
-        שלום, {user?.fullName?.split(" ")[0] || "צלם"} 👋
+        שלום, {user?.username || user?.userName || "צלם"} 👋
       </div>
       <div className={styles.pageSubtitle}>הנה מה שקורה עם העסק שלך היום</div>
 
       {/* Summary row */}
       <div className={styles.summaryRow}>
         {[
-          {
-            icon: "📩",
-            value: pendingCount,
-            label: "הצעות ממתינות",
-            change: "+2 השבוע",
-          },
-          {
-            icon: "📅",
-            value: 3,
-            label: "אירועים קרובים",
-            change: "הבא ב-5 ימים",
-          },
-          { icon: "⭐", value: "4.9", label: "דירוג ממוצע", change: "↑ משופר" },
-          {
-            icon: "💰",
-            value: "₪8,400",
-            label: "הכנסה החודש",
-            change: "+12% מחודש שעבר",
-          },
+          { icon: "📩", value: requests.length,      label: "בקשות ממתינות" },
+          { icon: "📅", value: upcomingEvents.length, label: "אירועים קרובים" },
+          { icon: "✅", value: pastEvents.length,     label: "אירועים שהושלמו" },
+          { icon: "📆", value: todayEvents.length,    label: "אירועים היום" },
         ].map((s, i) => (
           <div key={i} className={styles.summaryCard}>
             <div className={styles.summaryCardIcon}>{s.icon}</div>
             <div className={styles.summaryCardValue}>{s.value}</div>
             <div className={styles.summaryCardLabel}>{s.label}</div>
-            <div className={styles.summaryCardChange}>{s.change}</div>
           </div>
         ))}
       </div>
 
-      {/* Proposals */}
+      {/* New requests */}
       <div className={styles.section}>
         <div className={styles.sectionHeader}>
           <div className={styles.sectionTitle}>
-            📩 הצעות אירועים
-            {pendingCount > 0 && (
-              <span className={styles.sectionCount}>{pendingCount}</span>
+            📩 בקשות חדשות
+            {requests.length > 0 && (
+              <span className={styles.sectionCount}>{requests.length}</span>
             )}
           </div>
-          <button className={styles.seeAllBtn}>ראה הכל</button>
         </div>
 
-        {proposals.length === 0 ? (
+        {loading ? (
+          <div className={styles.emptyState}>
+            <div className={styles.emptyTitle}>טוען...</div>
+          </div>
+        ) : requests.length === 0 ? (
           <div className={styles.emptyState}>
             <div className={styles.emptyIcon}>📭</div>
-            <div className={styles.emptyTitle}>אין הצעות חדשות</div>
+            <div className={styles.emptyTitle}>אין בקשות חדשות</div>
           </div>
         ) : (
           <div className={styles.proposalsList}>
-            {proposals.map((p) => (
-              <ProposalCard key={p.id} proposal={p} onAction={handleProposal} />
+            {requests.map((r) => (
+              <RequestCard key={r.id} request={r} onAction={handleAction} />
             ))}
           </div>
         )}
       </div>
 
-      {/* Events */}
+      {/* Active events */}
       <div className={styles.section}>
         <div className={styles.sectionHeader}>
           <div className={styles.sectionTitle}>📅 אירועים</div>
-          <button className={styles.seeAllBtn}>ראה הכל</button>
         </div>
 
-        <div className={styles.eventsList}>
-          {PAST_EVENTS.map((ev) => (
-            <div key={ev.id} className={styles.eventRow}>
-              <div className={styles.eventDate}>
-                <div className={styles.eventDateDay}>{ev.date}</div>
-                <div className={styles.eventDateMonth}>{ev.month}</div>
-              </div>
-              <div className={styles.eventInfo}>
-                <div className={styles.eventTitle}>
-                  {getEventIcon(ev.eventType)} {ev.eventType}
-                </div>
-                <div className={styles.eventMeta}>
-                  <span>👤 {ev.customerName}</span>
-                  <span>📍 {ev.location}</span>
-                  {ev.photos > 0 && <span>🖼️ {ev.photos} תמונות</span>}
-                </div>
-              </div>
-              <span
-                className={`${styles.statusBadge} ${ev.status === "completed" ? styles.statusAccepted : styles.statusPending}`}
-              >
-                {ev.status === "completed" ? "הושלם" : "קרוב"}
-              </span>
-              <div className={styles.eventActions}>
-                <button className={styles.viewBtn}>פרטים</button>
-                {ev.status === "upcoming" && (
-                  <button className={styles.viewBtn}>העלה תמונות</button>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
+        {loading ? (
+          <div className={styles.emptyState}>
+            <div className={styles.emptyTitle}>טוען אירועים...</div>
+          </div>
+        ) : events.length === 0 ? (
+          <div className={styles.emptyState}>
+            <div className={styles.emptyIcon}>📭</div>
+            <div className={styles.emptyTitle}>אין אירועים עדיין</div>
+          </div>
+        ) : (
+          <>
+            {todayEvents.length > 0 && (
+              <>
+                <div className={styles.eventGroupLabel}>היום</div>
+                <div className={styles.eventsList}>{todayEvents.map(renderEventRow)}</div>
+              </>
+            )}
+            {upcomingEvents.length > 0 && (
+              <>
+                <div className={styles.eventGroupLabel}>עתידיים</div>
+                <div className={styles.eventsList}>{upcomingEvents.map(renderEventRow)}</div>
+              </>
+            )}
+            {pastEvents.length > 0 && (
+              <>
+                <div className={styles.eventGroupLabel}>הושלמו</div>
+                <div className={styles.eventsList}>{pastEvents.map(renderEventRow)}</div>
+              </>
+            )}
+          </>
+        )}
       </div>
     </div>
   );
 }
 
-function ProposalCard({ proposal: p, onAction }) {
+function RequestCard({ request: r, onAction }) {
+  const [busy, setBusy] = useState(false);
+  const d = new Date(r.date);
+  const dateStr = `${String(d.getDate()).padStart(2,"0")}/${String(d.getMonth()+1).padStart(2,"0")}/${d.getFullYear()}`;
+
+  const act = async (status) => {
+    setBusy(true);
+    await onAction(r.id, status);
+    setBusy(false);
+  };
+
   return (
-    <div className={`${styles.proposalCard} ${p.isNew ? styles.new : ""}`}>
-      <div className={styles.proposalBadge}>{getEventIcon(p.eventType)}</div>
+    <div className={styles.proposalCard}>
+      <div className={styles.proposalBadge}>{getEventIcon(r.name)}</div>
       <div className={styles.proposalInfo}>
-        <div className={styles.proposalTitle}>
-          {p.eventType}
-          {p.isNew && (
-            <span className={styles.newBadge} style={{ marginRight: 10 }}>
-              חדש
-            </span>
-          )}
-        </div>
+        <div className={styles.proposalTitle}>{r.name}</div>
         <div className={styles.proposalMeta}>
-          <span className={styles.proposalMetaItem}>👤 {p.customerName}</span>
-          <span className={styles.proposalMetaItem}>📅 {p.date}</span>
-          <span className={styles.proposalMetaItem}>📍 {p.location}</span>
+          <span className={styles.proposalMetaItem}>📅 {dateStr}</span>
+          <span className={styles.proposalMetaItem}>📍 {r.place}</span>
         </div>
       </div>
-
-      {p.status === "pending" ? (
-        <div className={styles.proposalActions}>
-          <button
-            className={styles.acceptBtn}
-            onClick={() => onAction(p.id, "accepted")}
-          >
-            ✓ קבל
-          </button>
-          <button
-            className={styles.declineBtn}
-            onClick={() => onAction(p.id, "declined")}
-          >
-            ✕ דחה
-          </button>
-        </div>
-      ) : (
-        <span
-          className={`${styles.statusBadge} ${p.status === "accepted" ? styles.statusAccepted : styles.statusDeclined}`}
+      <div className={styles.proposalActions}>
+        <button
+          className={styles.acceptBtn}
+          onClick={() => act("active")}
+          disabled={busy}
         >
-          {p.status === "accepted" ? "✓ אושר" : "✕ נדחה"}
-        </span>
-      )}
+          ✓ קבל
+        </button>
+        <button
+          className={styles.declineBtn}
+          onClick={() => act("declined")}
+          disabled={busy}
+        >
+          ✕ דחה
+        </button>
+      </div>
     </div>
   );
 }

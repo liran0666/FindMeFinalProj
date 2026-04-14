@@ -104,7 +104,7 @@
 
 /* Right form panel */
 .authFormWrapper {
-  width: 480px;
+  width: 520px;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
@@ -113,6 +113,25 @@
   background: var(--bg-secondary);
   border-right: 1px solid var(--border);
   position: relative;
+  overflow: hidden;
+}
+
+.authFormScroll {
+  flex: 1;
+  overflow-y: auto;
+  /* pull the scroll area outside the parent padding so it fills the full height */
+  margin: -60px -48px;
+  padding: 48px 48px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(66,165,245,0.3) transparent;
+}
+
+.authFormScroll::-webkit-scrollbar {
+  width: 4px;
+}
+.authFormScroll::-webkit-scrollbar-thumb {
+  background: rgba(66,165,245,0.3);
+  border-radius: 4px;
 }
 
 .authFormWrapper::before {
@@ -293,4 +312,101 @@
 .authDividerText {
   font-size: 12px;
   color: var(--text-muted);
+}
+
+/* Two-column row for paired inputs */
+.formRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+/* Service chip grid */
+.servicesGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.serviceChip {
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1.5px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.serviceChip:hover {
+  border-color: var(--blue-500);
+  color: var(--text-primary);
+}
+
+.serviceChipActive {
+  border-color: var(--blue-400);
+  background: rgba(66, 165, 245, 0.15);
+  color: var(--blue-300);
+  font-weight: 600;
+}
+
+.serviceChipDisabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.servicesNote {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.sectionDividerNote {
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+/* Section divider label */
+.sectionDivider {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 8px;
+  margin: 4px 0 20px;
+}
+
+/* Required asterisk */
+.required {
+  color: #f87171;
+  margin-right: 2px;
+}
+
+/* Input validation states */
+.formInputError {
+  border-color: #f87171 !important;
+  box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.15) !important;
+}
+
+.formInputSuccess {
+  border-color: #34d399 !important;
+  box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.15) !important;
+}
+
+/* Error message */
+.errorMsg {
+  color: #f87171;
+  font-size: 13px;
+  margin-bottom: 12px;
+  padding: 10px 14px;
+  background: rgba(248, 113, 113, 0.08);
+  border: 1px solid rgba(248, 113, 113, 0.2);
+  border-radius: var(--radius-sm);
 }
