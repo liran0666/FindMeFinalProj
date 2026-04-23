@@ -38,6 +38,7 @@ export function PhotographerExplore() {
     age: calcAge(p.dateOfBirth),
     services: [p.service1Name, p.service2Name, p.service3Name].filter(Boolean),
     emoji: "📸",
+    photoUrl: p.profile_pic ? `http://localhost:5000${p.profile_pic}` : null,
   }));
 
   const activeFilterCount = [cityFilter, minAge, maxAge, minRating].filter(Boolean).length;
@@ -212,7 +213,11 @@ function PhotographerCard({ photographer: p, onClick }) {
   return (
     <div className={styles.card} onClick={onClick}>
       <div className={styles.cardImageWrap}>
-        <div className={styles.cardImagePlaceholder}>{p.emoji}</div>
+        {p.photoUrl ? (
+          <img className={styles.cardImage} src={p.photoUrl} alt={p.name} />
+        ) : (
+          <div className={styles.cardImagePlaceholder}>{p.emoji}</div>
+        )}
       </div>
 
       <div className={styles.cardBody}>

@@ -54,11 +54,14 @@ export default function App() {
   };
 
   const handleRegister = async (formData) => {
-    const res = await fetch(`${AUTH_BASE_URL}/register`, {
+    const isFormData = formData instanceof FormData;
+    const fetchOptions = {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(formData),
-    });
+      body: isFormData ? formData : JSON.stringify(formData),
+    };
+    if (!isFormData) fetchOptions.headers = { "Content-Type": "application/json" };
+
+    const res = await fetch(`${AUTH_BASE_URL}/register`, fetchOptions);
     const data = await res.json();
     if (!res.ok) throw new Error(data.message || "Registration failed");
     localStorage.setItem("token", data.token);
@@ -100,7 +103,7 @@ export default function App() {
           path="/customer/*"
           element={
             user?.userType === "customer" ? (
-              <CustomerRoutes user={user} />
+              <CustomerRoutes user={user} setUser={setUser} />
             ) : (
               <Navigate to="/login" replace />
             )
@@ -110,7 +113,7 @@ export default function App() {
           path="/photographer/*"
           element={
             user?.userType === "photographer" ? (
-              <PhotographerRoutes user={user} />
+              <PhotographerRoutes user={user} setUser={setUser} />
             ) : (
               <Navigate to="/login" replace />
             )

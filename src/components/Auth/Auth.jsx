@@ -92,8 +92,34 @@ export function RegisterPage({ onRegister }) {
     dateOfBirth: "",
     city: "",
   });
+  const [profilePicFile, setProfilePicFile] = useState(null);
+  const [profilePicPreview, setProfilePicPreview] = useState(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+
+  // Clean up preview object URL when component unmounts or file changes
+  useEffect(() => {
+    return () => {
+      if (profilePicPreview) URL.revokeObjectURL(profilePicPreview);
+    };
+  }, [profilePicPreview]);
+
+  const handleProfilePicChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setError("קובץ התמונה אינו תקין. יש לבחור קובץ תמונה.");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setError("התמונה גדולה מדי. גודל מקסימלי: 5MB.");
+      return;
+    }
+    setError("");
+    if (profilePicPreview) URL.revokeObjectURL(profilePicPreview);
+    setProfilePicFile(file);
+    setProfilePicPreview(URL.createObjectURL(file));
+  };
 
   useEffect(() => {
     fetch("http://localhost:5000/api/auth/services")
@@ -129,13 +155,14 @@ export function RegisterPage({ onRegister }) {
     setBusy(true);
     try {
       const { confirmPassword, ...payload } = form;
-      await onRegister?.({
-        ...payload,
-        userType: role,
+      const fd = new FormData();
+      Object.entries({ ...payload, userType: role,
         service1: selectedServices[0] || 0,
         service2: selectedServices[1] || 0,
         service3: selectedServices[2] || 0,
-      });
+      }).forEach(([k, v]) => fd.append(k, v));
+      if (profilePicFile) fd.append("profile_pic", profilePicFile);
+      await onRegister?.(fd);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -169,6 +196,38 @@ export function RegisterPage({ onRegister }) {
                 <span className={styles.roleCardDesc}>{r.desc}</span>
               </div>
             ))}
+          </div>
+
+          {/* Profile picture */}
+          <div className={styles.sectionDivider}>תמונת פרופיל</div>
+          <div className={styles.avatarPickerRow}>
+            <label className={styles.avatarPickerLabel} htmlFor="profile_pic_input">
+              {profilePicPreview ? (
+                <img src={profilePicPreview} alt="תצוגה מקדימה" className={styles.avatarPreview} />
+              ) : (
+                <div className={styles.avatarPickerPlaceholder}>
+                  <span className={styles.avatarPickerIcon}>📷</span>
+                  <span className={styles.avatarPickerHint}>לחץ להעלאת תמונה</span>
+                  <span className={styles.avatarPickerSub}>JPG / PNG / WEBP עד 5MB</span>
+                </div>
+              )}
+            </label>
+            <input
+              id="profile_pic_input"
+              type="file"
+              accept="image/*"
+              style={{ display: "none" }}
+              onChange={handleProfilePicChange}
+            />
+            {profilePicPreview && (
+              <button
+                type="button"
+                className={styles.avatarRemoveBtn}
+                onClick={() => { setProfilePicFile(null); setProfilePicPreview(null); }}
+              >
+                הסר תמונה
+              </button>
+            )}
           </div>
 
           {/* Account details */}

@@ -1,43 +1,49 @@
 // Stats.jsx - Photographer statistics page
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import styles from "./Stats.module.css";
 
-const MONTHLY_DATA = [
-  { month: "ינו", events: 4 },
-  { month: "פבר", events: 5 },
-  { month: "מרץ", events: 5 },
-  { month: "אפר", events: 7 },
-  { month: "מאי", events: 8 },
-  { month: "יוני", events: 7 },
-  { month: "יולי", events: 6 },
-  { month: "אוג", events: 7 },
-  { month: "ספט", events: 9 },
-  { month: "אוק", events: 10 },
-  { month: "נוב", events: 8 },
-  { month: "דצמ", events: 11 },
-];
+const MONTH_LABELS = ["ינו","פבר","מרץ","אפר","מאי","יוני","יולי","אוג","ספט","אוק","נוב","דצמ"];
 
-const SPECIALTIES_DATA = [
-  { name: "חתונות", pct: 45 },
-  { name: "אירועים", pct: 28 },
-  { name: "פורטרט", pct: 15 },
-  { name: "עסקי", pct: 12 },
-];
-
-const RATING_DATA = [
-  { stars: 5, count: 89 },
-  { stars: 4, count: 28 },
-  { stars: 3, count: 8 },
-  { stars: 2, count: 2 },
-  { stars: 1, count: 1 },
-];
-
+const API = "http://localhost:5000/api/events";
 
 export function StatsPage({ user }) {
-  const [period, setPeriod] = useState("2026");
-  const totalEvents = MONTHLY_DATA.reduce((s, d) => s + d.events, 0);
-  const totalRatings = RATING_DATA.reduce((s, d) => s + d.count, 0);
+  const currentYear = new Date().getFullYear();
+  const [period, setPeriod] = useState(String(currentYear));
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    setLoading(true);
+    fetch(`${API}/stats?year=${period}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((r) => r.json())
+      .then(setData)
+      .catch((err) => console.error("Failed to load stats:", err))
+      .finally(() => setLoading(false));
+  }, [period]);
+
+  // Build full 12-month array (months with no events → 0)
+  const monthlyData = MONTH_LABELS.map((label, i) => {
+    const found = data?.monthly?.find((m) => m.month === i + 1);
+    return { month: label, events: found ? Number(found.events) : 0 };
+  });
+
+  const totalEvents = monthlyData.reduce((s, d) => s + d.events, 0);
+  const maxEvents = Math.max(...monthlyData.map((d) => d.events), 1);
+
+  const typeData = data?.types ?? [];
+  const totalTyped = typeData.reduce((s, t) => s + Number(t.count), 0);
+
+  const statusMap = Object.fromEntries(
+    (data?.statusTotals ?? []).map((s) => [s.status, Number(s.count)])
+  );
+  const rating = data?.rating ?? 0;
+
+  const years = [];
+  for (let y = currentYear; y >= currentYear - 2; y--) years.push(String(y));
 
   return (
     <div className={styles.page}>
@@ -45,7 +51,7 @@ export function StatsPage({ user }) {
       <div className={styles.pageSubtitle}>מבט על על הפעילות שלך</div>
 
       <div className={styles.periodSelector}>
-        {["2024", "2025", "2026"].map((y) => (
+        {years.map((y) => (
           <button
             key={y}
             className={`${styles.periodBtn} ${period === y ? styles.active : ""}`}
@@ -56,87 +62,92 @@ export function StatsPage({ user }) {
         ))}
       </div>
 
-      <div className={styles.statsGrid}>
-        {[
-          {
-            icon: "📅",
-            value: totalEvents,
-            label: "אירועים השנה",
-            trend: "+5",
-            up: true,
-          },
-          {
-            icon: "⭐",
-            value: "4.9",
-            label: "דירוג ממוצע",
-            trend: "+0.2",
-            up: true,
-          },
-          {
-            icon: "👥",
-            value: "68%",
-            label: "לקוחות חוזרים",
-            trend: "-3%",
-            up: false,
-          },
-        ].map((s, i) => (
-          <div key={i} className={styles.statCard}>
-            <div className={styles.statCardIcon}>{s.icon}</div>
-            <div className={styles.statCardValue}>{s.value}</div>
-            <div className={styles.statCardLabel}>{s.label}</div>
-            <span
-              className={`${styles.statCardTrend} ${s.up ? styles.trendUp : styles.trendDown}`}
-            >
-              {s.up ? "↑" : "↓"} {s.trend}
-            </span>
-          </div>
-        ))}
-      </div>
-
-      {/* Two columns */}
-      <div className={styles.twoCol}>
-        {/* Specialties */}
-        <div className={styles.chartCard}>
-          <div className={styles.chartTitle} style={{ marginBottom: 20 }}>
-            📷 פירוט לפי התמחות
-          </div>
-          <div className={styles.specialtyList}>
-            {SPECIALTIES_DATA.map((s, i) => (
-              <div key={i} className={styles.specialtyRow}>
-                <div className={styles.specialtyName}>{s.name}</div>
-                <div className={styles.specialtyBar}>
-                  <div
-                    className={styles.specialtyBarFill}
-                    style={{ width: `${s.pct}%` }}
-                  />
-                </div>
-                <div className={styles.specialtyPct}>{s.pct}%</div>
+      {loading ? (
+        <div className={styles.loadingState}>טוען נתונים...</div>
+      ) : (
+        <>
+          <div className={styles.statsGrid}>
+            {[
+              { icon: "📅", value: totalEvents, label: "אירועים השנה" },
+              { icon: "⭐", value: rating > 0 ? rating.toFixed(1) : "—", label: "דירוג ממוצע" },
+              { icon: "⏳", value: statusMap["pending"] ?? 0, label: "בקשות ממתינות" },
+            ].map((s, i) => (
+              <div key={i} className={styles.statCard}>
+                <div className={styles.statCardIcon}>{s.icon}</div>
+                <div className={styles.statCardValue}>{s.value}</div>
+                <div className={styles.statCardLabel}>{s.label}</div>
               </div>
             ))}
           </div>
-        </div>
 
-        {/* Ratings */}
-        <div className={styles.chartCard}>
-          <div className={styles.chartTitle} style={{ marginBottom: 20 }}>
-            ⭐ פירוט דירוגים ({totalRatings})
-          </div>
-          <div className={styles.ratingBreakdown}>
-            {RATING_DATA.map((r, i) => (
-              <div key={i} className={styles.ratingRow}>
-                <div className={styles.ratingStars}>{"⭐".repeat(r.stars)}</div>
-                <div className={styles.ratingBar}>
-                  <div
-                    className={styles.ratingBarFill}
-                    style={{ width: `${(r.count / totalRatings) * 100}%` }}
-                  />
+          {/* Monthly bar chart */}
+          <div className={styles.chartCard} style={{ marginBottom: 24 }}>
+            <div className={styles.chartTitle}>📅 אירועים לפי חודש — {period}</div>
+            <div className={styles.barChart}>
+              {monthlyData.map((d, i) => (
+                <div key={i} className={styles.barCol}>
+                  <div className={styles.barWrap}>
+                    <div
+                      className={styles.bar}
+                      style={{ height: `${(d.events / maxEvents) * 100}%` }}
+                    />
+                  </div>
+                  <div className={styles.barCount}>{d.events > 0 ? d.events : ""}</div>
+                  <div className={styles.barLabel}>{d.month}</div>
                 </div>
-                <div className={styles.ratingCount}>{r.count}</div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
-      </div>
+
+          <div className={styles.twoCol}>
+            {/* Event types */}
+            <div className={styles.chartCard}>
+              <div className={styles.chartTitle} style={{ marginBottom: 20 }}>
+                📷 פירוט לפי סוג אירוע
+              </div>
+              {typeData.length === 0 ? (
+                <div className={styles.emptyNote}>אין נתונים לתקופה זו</div>
+              ) : (
+                <div className={styles.specialtyList}>
+                  {typeData.map((t, i) => {
+                    const pct = totalTyped > 0 ? Math.round((Number(t.count) / totalTyped) * 100) : 0;
+                    return (
+                      <div key={i} className={styles.specialtyRow}>
+                        <div className={styles.specialtyName}>{t.name}</div>
+                        <div className={styles.specialtyBar}>
+                          <div className={styles.specialtyBarFill} style={{ width: `${pct}%` }} />
+                        </div>
+                        <div className={styles.specialtyPct}>{pct}%</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Status totals */}
+            <div className={styles.chartCard}>
+              <div className={styles.chartTitle} style={{ marginBottom: 20 }}>
+                📋 סיכום סטטוסים (כולל)
+              </div>
+              <div className={styles.statusSummary}>
+                {[
+                  { label: "✅ פעילים", key: "active", color: "var(--accent-mint)" },
+                  { label: "⏳ ממתינים", key: "pending", color: "var(--accent-gold)" },
+                  { label: "❌ נדחו", key: "declined", color: "var(--accent-coral)" },
+                ].map((s) => (
+                  <div key={s.key} className={styles.statusRow}>
+                    <span className={styles.statusLabel}>{s.label}</span>
+                    <span className={styles.statusValue} style={{ color: s.color }}>
+                      {statusMap[s.key] ?? 0}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

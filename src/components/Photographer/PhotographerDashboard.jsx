@@ -44,6 +44,7 @@ export function PhotographerDashboard({ user }) {
   const [requests, setRequests] = useState([]);   // status = "pending"
   const [events, setEvents] = useState([]);        // status = "active"
   const [loading, setLoading] = useState(true);
+  const [selectedEvent, setSelectedEvent] = useState(null);
 
   const fetchEvents = () => {
     const token = localStorage.getItem("token");
@@ -120,7 +121,7 @@ export function PhotographerDashboard({ user }) {
           {past ? "הושלם" : today ? "היום" : "קרוב"}
         </span>
         <div className={styles.eventActions}>
-          <button className={styles.viewBtn}>פרטים</button>
+          <button className={styles.viewBtn} onClick={() => setSelectedEvent(ev)}>פרטים</button>
         </div>
       </div>
     );
@@ -215,6 +216,37 @@ export function PhotographerDashboard({ user }) {
             )}
           </>
         )}
+      </div>
+      {selectedEvent && (
+        <EventDetailsModal event={selectedEvent} onClose={() => setSelectedEvent(null)} />
+      )}
+    </div>
+  );
+}
+
+function EventDetailsModal({ event, onClose }) {
+  const d = new Date(event.date);
+  const dateStr = `${String(d.getDate()).padStart(2,"0")}/${String(d.getMonth()+1).padStart(2,"0")}/${d.getFullYear()}`;
+  return (
+    <div className={styles.modalOverlay} onClick={onClose}>
+      <div className={styles.modalBox} onClick={(e) => e.stopPropagation()}>
+        <button className={styles.modalClose} onClick={onClose}>✕</button>
+        <div className={styles.modalIcon}>{getEventIcon(event.name)}</div>
+        <h2 className={styles.modalTitle}>{event.name}</h2>
+        <div className={styles.modalDetails}>
+          <div className={styles.modalDetailRow}>
+            <span className={styles.modalDetailLabel}>📅 תאריך</span>
+            <span className={styles.modalDetailValue}>{dateStr}</span>
+          </div>
+          <div className={styles.modalDetailRow}>
+            <span className={styles.modalDetailLabel}>📍 מיקום</span>
+            <span className={styles.modalDetailValue}>{event.place}</span>
+          </div>
+          <div className={styles.modalDetailRow}>
+            <span className={styles.modalDetailLabel}>סטטוס</span>
+            <span className={styles.modalDetailValue}>{event.status === "active" ? "✅ פעיל" : event.status === "pending" ? "⏳ ממתין" : "❌ נדחה"}</span>
+          </div>
+        </div>
       </div>
     </div>
   );

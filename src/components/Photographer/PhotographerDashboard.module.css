@@ -215,6 +215,41 @@
   background: rgba(66, 165, 245, 0.1);
 }
 
+.galleryBtn {
+  padding: 8px 14px;
+  background: rgba(16, 185, 129, 0.1);
+  color: #34d399;
+  border: 1.5px solid rgba(52, 211, 153, 0.3);
+  border-radius: var(--radius-full);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.galleryBtn:hover {
+  background: rgba(16, 185, 129, 0.2);
+}
+
+.galleryModalBtn {
+  display: block;
+  width: 100%;
+  margin-top: 20px;
+  padding: 12px;
+  background: rgba(16, 185, 129, 0.12);
+  color: #34d399;
+  border: 1.5px solid rgba(52, 211, 153, 0.3);
+  border-radius: var(--radius-sm);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.galleryModalBtn:hover {
+  background: rgba(16, 185, 129, 0.22);
+}
+
 /* Status badge */
 .statusBadge {
   padding: 4px 12px;
@@ -382,3 +417,80 @@
 
 .emptyIcon { font-size: 40px; margin-bottom: 12px; }
 .emptyTitle { font-size: 16px; color: var(--text-secondary); }
+
+/* Event details modal */
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modalBox {
+  background: var(--bg-card);
+  border: 1px solid var(--border-bright);
+  border-radius: var(--radius-lg);
+  padding: 36px 32px 28px;
+  width: 100%;
+  max-width: 400px;
+  position: relative;
+  text-align: center;
+  direction: rtl;
+}
+
+.modalClose {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 16px;
+  cursor: pointer;
+  line-height: 1;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  transition: color var(--transition-fast);
+}
+
+.modalClose:hover { color: var(--white); }
+
+.modalIcon { font-size: 40px; margin-bottom: 10px; }
+
+.modalTitle {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--white);
+  margin-bottom: 24px;
+}
+
+.modalDetails {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.modalDetailRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 16px;
+}
+
+.modalDetailLabel {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.modalDetailValue {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--white);
+}

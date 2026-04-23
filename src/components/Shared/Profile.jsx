@@ -1,43 +1,161 @@
 // Profile.jsx - Edit profile (both user types)
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import styles from "./Profile.module.css";
 
-export function ProfilePage({ user, isPhotographer = false }) {
+const AUTH_BASE_URL = "http://localhost:5000/api/auth";
+
+const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+export function ProfilePage({ user, setUser, isPhotographer: isPhotographerProp }) {
+  const isPhotographer =
+    isPhotographerProp ?? user?.userType === "photographer";
+
   const [form, setForm] = useState({
-    fullName: user?.fullName || "ישראל ישראלי",
-    username: user?.username || "israel123",
-    email: user?.email || "meie@gmail.com",
-    phone: user?.phone || "052-5381648",
-    location: user?.location || "תל אביב",
-    bio: user?.bio || "צלם מקצועי עם ניסיון של 10 שנים.",
-    website: user?.website || "",
-    instagram: user?.instagram || "",
+    username: user?.username || user?.userName || "",
+    email: user?.email || "",
+    city: user?.city || "",
+    service1: user?.service1 ?? 0,
+    service2: user?.service2 ?? 0,
+    service3: user?.service3 ?? 0,
   });
 
-  const [specialties, setSpecialties] = useState(
-    user?.specialties || ["חתונות", "אירועים", "פורטרט"],
-  );
-  const [tagInput, setTagInput] = useState("");
-  const [saved, setSaved] = useState(false);
+  const [errors, setErrors] = useState({});
+  const [services, setServices] = useState([]);
+  const [saving, setSaving] = useState(false);
+  const [toast, setToast] = useState(null); // { type: 'success'|'error', message }
+  const [picPreview, setPicPreview] = useState(null); // local preview while uploading
+  const [picUploading, setPicUploading] = useState(false);
+  const picInputRef = useRef(null);
 
-  const handleSave = () => {
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2500);
+  // Fetch services list for photographer dropdowns
+  useEffect(() => {
+    if (!isPhotographer) return;
+    fetch(`${AUTH_BASE_URL}/services`)
+      .then((r) => r.json())
+      .then((data) => setServices(Array.isArray(data) ? data : []))
+      .catch(() => {});
+  }, [isPhotographer]);
+
+  const validate = () => {
+    const errs = {};
+    if (!form.username.trim()) errs.username = "שם משתמש לא יכול להיות ריק.";
+    else if (form.username.trim().length < 3)
+      errs.username = "שם משתמש חייב להכיל לפחות 3 תווים.";
+    if (!form.email.trim()) errs.email = 'דוא"ל לא יכול להיות ריק.';
+    else if (!emailRegex.test(form.email.trim()))
+      errs.email = 'כתובת דוא"ל אינה תקינה.';
+    return errs;
   };
 
-  const addTag = (e) => {
-    if ((e.key === "Enter" || e.key === ",") && tagInput.trim()) {
-      e.preventDefault();
-      setSpecialties((prev) => [...prev, tagInput.trim()]);
-      setTagInput("");
+  const handleSave = async () => {
+    const errs = validate();
+    if (Object.keys(errs).length > 0) {
+      setErrors(errs);
+      return;
+    }
+    setErrors({});
+    setSaving(true);
+
+    try {
+      const token = localStorage.getItem("token");
+      const body = {
+        username: form.username.trim(),
+        email: form.email.trim(),
+        city: form.city.trim(),
+      };
+      if (isPhotographer) {
+        body.service1 = Number(form.service1);
+        body.service2 = Number(form.service2);
+        body.service3 = Number(form.service3);
+      }
+
+      const res = await fetch(`${AUTH_BASE_URL}/profile`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(body),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        setToast({ type: "error", message: data.message || "שגיאה בשמירה." });
+      } else {
+        if (setUser) setUser(data.user);
+        setToast({ type: "success", message: "השינויים נשמרו בהצלחה!" });
+      }
+    } catch {
+      setToast({ type: "error", message: "שגיאת תקשורת עם השרת." });
+    } finally {
+      setSaving(false);
+      setTimeout(() => setToast(null), 3000);
     }
   };
 
-  const removeTag = (i) =>
-    setSpecialties((prev) => prev.filter((_, idx) => idx !== i));
+  const handleCancel = () => {
+    setForm({
+      username: user?.username || user?.userName || "",
+      email: user?.email || "",
+      city: user?.city || "",
+      service1: user?.service1 ?? 0,
+      service2: user?.service2 ?? 0,
+      service3: user?.service3 ?? 0,
+    });
+    setErrors({});
+  };
 
-  const emoji = user?.emoji || "📸";
+  const handlePicChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setToast({ type: "error", message: "יש לבחור קובץ תמונה בלבד." });
+      setTimeout(() => setToast(null), 3000);
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setToast({ type: "error", message: "התמונה גדולה מדי. מקסימום 5MB." });
+      setTimeout(() => setToast(null), 3000);
+      return;
+    }
+
+    // Show local preview immediately
+    const localUrl = URL.createObjectURL(file);
+    setPicPreview(localUrl);
+    setPicUploading(true);
+
+    try {
+      const token = localStorage.getItem("token");
+      const fd = new FormData();
+      fd.append("profile_pic", file);
+      const res = await fetch(`${AUTH_BASE_URL}/profile-pic`, {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${token}` },
+        body: fd,
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setPicPreview(null);
+        setToast({ type: "error", message: data.message || "שגיאה בהעלאת התמונה." });
+      } else {
+        if (setUser) setUser(data.user);
+        setPicPreview(null); // now served from server via user.profile_pic
+        setToast({ type: "success", message: "תמונת הפרופיל עודכנה!" });
+      }
+    } catch {
+      setPicPreview(null);
+      setToast({ type: "error", message: "שגיאת תקשורת עם השרת." });
+    } finally {
+      setPicUploading(false);
+      setTimeout(() => setToast(null), 3000);
+      // Reset input so selecting the same file again triggers onChange
+      if (picInputRef.current) picInputRef.current.value = "";
+    }
+  };
+
+  const emoji = user?.emoji || (isPhotographer ? "📸" : "👤");
+  const photoUrl = picPreview || (user?.profile_pic ? `http://localhost:5000${user.profile_pic}` : null);
 
   return (
     <div className={styles.page}>
@@ -48,8 +166,31 @@ export function ProfilePage({ user, isPhotographer = false }) {
         <div className={styles.profileBanner}>{emoji}</div>
         <div className={styles.profileBody}>
           <div className={styles.profileAvatarRow}>
-            <div className={styles.profileAvatar}>{emoji}</div>
-            <div className={styles.avatarEditHint}>לחץ לשינוי תמונה</div>
+            <button
+              className={styles.profileAvatar}
+              onClick={() => picInputRef.current?.click()}
+              title="לחץ לשינוי תמונת פרופיל"
+              disabled={picUploading}
+            >
+              {photoUrl ? (
+                <img src={photoUrl} alt="תמונת פרופיל" className={styles.profileAvatarImg} />
+              ) : (
+                <span className={styles.profileAvatarEmoji}>{emoji}</span>
+              )}
+              <span className={styles.profileAvatarOverlay}>
+                {picUploading ? "⏳" : "📷"}
+              </span>
+            </button>
+            <input
+              ref={picInputRef}
+              type="file"
+              accept="image/*"
+              style={{ display: "none" }}
+              onChange={handlePicChange}
+            />
+            <div className={styles.avatarEditHint}>
+              {picUploading ? "מעלה תמונה..." : "לחץ על התמונה לעריכה"}
+            </div>
           </div>
         </div>
       </div>
@@ -59,138 +200,96 @@ export function ProfilePage({ user, isPhotographer = false }) {
         <div className={styles.sectionTitle}>📋 פרטים אישיים</div>
         <div className={styles.formGrid}>
           <div className={styles.formGroup}>
-            <label className={styles.formLabel}>שם מלא</label>
-            <input
-              className={styles.formInput}
-              value={form.fullName}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, fullName: e.target.value }))
-              }
-            />
-          </div>
-          <div className={styles.formGroup}>
             <label className={styles.formLabel}>שם משתמש</label>
             <input
-              className={styles.formInput}
+              className={`${styles.formInput} ${errors.username ? styles.inputError : ""}`}
               value={form.username}
               onChange={(e) =>
                 setForm((f) => ({ ...f, username: e.target.value }))
               }
             />
+            {errors.username && (
+              <span className={styles.errorMsg}>{errors.username}</span>
+            )}
           </div>
+
           <div className={styles.formGroup}>
             <label className={styles.formLabel}>דוא"ל</label>
             <input
-              className={styles.formInput}
+              className={`${styles.formInput} ${errors.email ? styles.inputError : ""}`}
               type="email"
               value={form.email}
               onChange={(e) =>
                 setForm((f) => ({ ...f, email: e.target.value }))
               }
             />
+            {errors.email && (
+              <span className={styles.errorMsg}>{errors.email}</span>
+            )}
           </div>
+
           <div className={styles.formGroup}>
-            <label className={styles.formLabel}>טלפון</label>
+            <label className={styles.formLabel}>עיר</label>
             <input
               className={styles.formInput}
-              value={form.phone}
+              value={form.city}
               onChange={(e) =>
-                setForm((f) => ({ ...f, phone: e.target.value }))
-              }
-            />
-          </div>
-          <div className={styles.formGroup}>
-            <label className={styles.formLabel}>מיקום</label>
-            <input
-              className={styles.formInput}
-              value={form.location}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, location: e.target.value }))
+                setForm((f) => ({ ...f, city: e.target.value }))
               }
             />
           </div>
         </div>
       </div>
 
-      {/* Photographer only fields */}
-      {isPhotographer && (
-        <>
-          <div className={styles.section}>
-            <div className={styles.sectionTitle}>📷 פרטים מקצועיים</div>
-            <div className={styles.formGrid}>
-              <div className={`${styles.formGroup} ${styles.formGroupFull}`}>
-                <label className={styles.formLabel}>ביוגרפיה</label>
-                <textarea
-                  className={styles.formTextarea}
-                  value={form.bio}
+      {/* Photographer services */}
+      {isPhotographer && services.length > 0 && (
+        <div className={styles.section}>
+          <div className={styles.sectionTitle}>📷 שירותים</div>
+          <div className={styles.formGrid}>
+            {[1, 2, 3].map((n) => (
+              <div className={styles.formGroup} key={n}>
+                <label className={styles.formLabel}>שירות {n}</label>
+                <select
+                  className={styles.formInput}
+                  value={form[`service${n}`]}
                   onChange={(e) =>
-                    setForm((f) => ({ ...f, bio: e.target.value }))
+                    setForm((f) => ({ ...f, [`service${n}`]: e.target.value }))
                   }
-                />
-              </div>
-
-              <div className={`${styles.formGroup} ${styles.formGroupFull}`}>
-                <label className={styles.formLabel}>
-                  התמחויות (Enter להוספה)
-                </label>
-                <div className={styles.tagsWrap}>
-                  {specialties.map((s, i) => (
-                    <span key={i} className={styles.tag}>
-                      {s}
-                      <button
-                        className={styles.tagRemove}
-                        onClick={() => removeTag(i)}
-                      >
-                        ×
-                      </button>
-                    </span>
+                >
+                  <option value={0}>ללא</option>
+                  {services.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.type}
+                    </option>
                   ))}
-                  <input
-                    className={styles.tagInput}
-                    value={tagInput}
-                    placeholder="הוסף התמחות..."
-                    onChange={(e) => setTagInput(e.target.value)}
-                    onKeyDown={addTag}
-                  />
-                </div>
+                </select>
               </div>
-
-              <div className={styles.formGroup}>
-                <label className={styles.formLabel}>אתר אינטרנט</label>
-                <input
-                  className={styles.formInput}
-                  value={form.website}
-                  placeholder="https://..."
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, website: e.target.value }))
-                  }
-                />
-              </div>
-              <div className={styles.formGroup}>
-                <label className={styles.formLabel}>Instagram</label>
-                <input
-                  className={styles.formInput}
-                  value={form.instagram}
-                  placeholder="@username"
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, instagram: e.target.value }))
-                  }
-                />
-              </div>
-            </div>
+            ))}
           </div>
-        </>
+        </div>
       )}
 
       <div className={styles.saveActions}>
-        <button className={styles.cancelBtn}>ביטול</button>
-        <button className={styles.saveBtn} onClick={handleSave}>
-          💾 שמור שינויים
+        <button className={styles.cancelBtn} onClick={handleCancel}>
+          ביטול
+        </button>
+        <button
+          className={styles.saveBtn}
+          onClick={handleSave}
+          disabled={saving}
+        >
+          {saving ? "שומר..." : "💾 שמור שינויים"}
         </button>
       </div>
 
-      {saved && (
-        <div className={styles.savedToast}>✅ השינויים נשמרו בהצלחה!</div>
+      {toast && (
+        <div
+          className={
+            toast.type === "success" ? styles.savedToast : styles.errorToast
+          }
+        >
+          {toast.type === "success" ? "✅" : "❌"} {toast.message}
+        </div>
       )}
     </div>
   );

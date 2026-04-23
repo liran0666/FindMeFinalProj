@@ -92,6 +92,7 @@ export function PhotographerProfile() {
     age: calcAge(photographer.dateOfBirth),
     services,
     emoji: "📸",
+    photoUrl: photographer.profile_pic ? `http://localhost:5000${photographer.profile_pic}` : null,
   };
 
   const handleSendProposal = async () => {
@@ -135,7 +136,13 @@ export function PhotographerProfile() {
       <div className={styles.hero}>
         <div className={styles.heroBanner}>{p.emoji}</div>
         <div className={styles.heroBody}>
-          <div className={styles.heroAvatar}>{p.emoji}</div>
+          <div className={styles.heroAvatar}>
+            {p.photoUrl ? (
+              <img src={p.photoUrl} alt={p.name} className={styles.heroAvatarImg} />
+            ) : (
+              p.emoji
+            )}
+          </div>
           <div className={styles.heroInfo}>
             <div className={styles.heroName}>{p.name}</div>
             <div className={styles.heroMeta}>
