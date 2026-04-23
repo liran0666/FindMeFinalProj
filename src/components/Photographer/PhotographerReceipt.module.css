@@ -14,7 +14,9 @@
 }
 
 @media (max-width: 760px) {
-  .page { grid-template-columns: 1fr; }
+  .page {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* ── Form panel ────────────────────────────────────────── */
@@ -41,7 +43,9 @@
   margin-bottom: 24px;
 }
 
-.formSection { margin-bottom: 18px; }
+.formSection {
+  margin-bottom: 18px;
+}
 
 .sectionLabel {
   font-size: 12px;
@@ -52,7 +56,8 @@
   letter-spacing: 0.05em;
 }
 
-.select, .input {
+.select,
+.input {
   width: 100%;
   padding: 10px 14px;
   background: var(--bg-secondary);
@@ -65,7 +70,10 @@
   box-sizing: border-box;
   font-family: var(--font-body);
 }
-.select:focus, .input:focus { border-color: var(--blue-400); }
+.select:focus,
+.input:focus {
+  border-color: var(--blue-400);
+}
 
 .taxCheckbox {
   display: flex;
@@ -76,7 +84,12 @@
   cursor: pointer;
   margin-bottom: 18px;
 }
-.taxCheckbox input { accent-color: var(--blue-400); width: 15px; height: 15px; cursor: pointer; }
+.taxCheckbox input {
+  accent-color: var(--blue-400);
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
+}
 
 /* Price breakdown */
 .breakdown {
@@ -117,10 +130,16 @@
   cursor: pointer;
   transition: opacity 0.18s;
 }
-.printBtn:hover { opacity: 0.88; }
-.printBtn:disabled { opacity: 0.4; cursor: not-allowed; }
+.printBtn:hover {
+  opacity: 0.88;
+}
+.printBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
 
-.loadingText, .emptyText {
+.loadingText,
+.emptyText {
   font-size: 13px;
   color: var(--text-muted);
   padding: 8px 0;
@@ -140,7 +159,7 @@
   border-radius: var(--radius-lg);
   padding: 40px 44px;
   direction: rtl;
-  font-family: 'Segoe UI', Arial, sans-serif;
+  font-family: "Segoe UI", Arial, sans-serif;
 }
 
 /* Header */
@@ -157,9 +176,21 @@
   color: #1565c0;
 }
 
-.receiptHeaderDetails { text-align: start; }
-.receiptNumber { font-size: 13px; font-weight: 700; color: #374151; white-space: nowrap; }
-.receiptDate   { font-size: 12px; color: #6b7280; margin-top: 3px; white-space: nowrap; }
+.receiptHeaderDetails {
+  text-align: start;
+}
+.receiptNumber {
+  font-size: 13px;
+  font-weight: 700;
+  color: #374151;
+  white-space: nowrap;
+}
+.receiptDate {
+  font-size: 12px;
+  color: #6b7280;
+  margin-top: 3px;
+  white-space: nowrap;
+}
 
 .receiptDivider {
   height: 1px;
@@ -183,11 +214,21 @@
   color: #9ca3af;
   margin-bottom: 4px;
 }
-.receiptPartyName { font-size: 15px; font-weight: 700; color: #111827; }
-.receiptPartyMeta { font-size: 12px; color: #6b7280; margin-top: 2px; }
+.receiptPartyName {
+  font-size: 15px;
+  font-weight: 700;
+  color: #111827;
+}
+.receiptPartyMeta {
+  font-size: 12px;
+  color: #6b7280;
+  margin-top: 2px;
+}
 
 /* Sections */
-.receiptSection { margin-bottom: 4px; }
+.receiptSection {
+  margin-bottom: 4px;
+}
 .receiptSectionTitle {
   font-size: 12px;
   font-weight: 700;
@@ -197,14 +238,23 @@
   margin-bottom: 10px;
 }
 
-.receiptGrid { display: flex; flex-direction: column; gap: 6px; }
+.receiptGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
 .receiptGridRow {
   display: flex;
   justify-content: space-between;
   font-size: 13px;
 }
-.receiptGridLabel { color: #6b7280; }
-.receiptGridValue { font-weight: 500; color: #111827; }
+.receiptGridLabel {
+  color: #6b7280;
+}
+.receiptGridValue {
+  font-weight: 500;
+  color: #111827;
+}
 
 /* Price table */
 .priceTable {
@@ -229,9 +279,14 @@
   color: #374151;
 }
 .priceTable th:last-child,
-.priceTable td:last-child { text-align: left; }
+.priceTable td:last-child {
+  text-align: left;
+}
 
-.taxRow td { color: #6b7280; font-size: 13px; }
+.taxRow td {
+  color: #6b7280;
+  font-size: 13px;
+}
 
 .totalRow td {
   font-size: 16px;
@@ -259,7 +314,9 @@
 }
 
 @media print {
-  .formPanel { display: none !important; }
+  .formPanel {
+    display: none !important;
+  }
 
   .page {
     display: block !important;
@@ -286,5 +343,7 @@
   /* Prevent sections from splitting across pages */
   .receiptSection,
   .receiptParties,
-  .priceTable { break-inside: avoid; }
+  .priceTable {
+    break-inside: avoid;
+  }
 }
