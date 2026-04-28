@@ -10,7 +10,7 @@ import getDB from "./db.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-dotenv.config();
+dotenv.config({ path: path.join(__dirname, ".env") });
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -27,6 +27,12 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use("/api/auth", authRoutes);
 app.use("/api/events", eventRoutes);
 
+// Always return JSON errors — prevents "<!DOCTYPE..." responses
+app.use((err, req, res, _next) => {
+  console.error("Unhandled error:", err.message);
+  res.status(err.status || err.statusCode || 500).json({ message: err.message || "Server error." });
+});
+
 async function startServer() {
   try {
     const db = getDB();
@@ -37,7 +43,13 @@ async function startServer() {
       await db.query("ALTER TABLE events ADD COLUMN customer_rating TINYINT NULL");
       console.log("✅ customer_rating column added");
     } catch (e) {
-      if (e.errno !== 1060) throw e; // 1060 = column already exists, safe to ignore
+      if (e.errno !== 1060) throw e;
+    }
+    try {
+      await db.query("ALTER TABLE events ADD COLUMN notes TEXT NULL");
+      console.log("✅ notes column added");
+    } catch (e) {
+      if (e.errno !== 1060) throw e;
     }
 
     app.listen(PORT, () => {

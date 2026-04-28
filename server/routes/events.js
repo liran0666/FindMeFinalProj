@@ -9,6 +9,26 @@ import getDB from "../db.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
 
+// ─── MULTER FOR SELFIE (temp, deleted after comparison) ──────────────────────
+const selfieUpload = multer({
+  storage: multer.diskStorage({
+    destination: (_req, _file, cb) => {
+      const dir = path.join(__dirname, "../uploads/selfies");
+      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+      cb(null, dir);
+    },
+    filename: (_req, file, cb) => {
+      const ext = path.extname(file.originalname).toLowerCase() || ".jpg";
+      cb(null, `selfie-${Date.now()}-${Math.random().toString(36).slice(2, 7)}${ext}`);
+    },
+  }),
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    if (file.mimetype.startsWith("image/")) cb(null, true);
+    else cb(new Error("Only image files are allowed."));
+  },
+});
+
 // ─── MULTER FOR EVENT PHOTOS ──────────────────────────────────────────────────
 const eventPhotoStorage = multer.diskStorage({
   destination: (req, _file, cb) => {
@@ -123,10 +143,12 @@ router.get("/photographer", verifyToken, async (req, res) => {
   try {
     const db = getDB();
     const [rows] = await db.query(
-      `SELECT id, name, date, place, status
-       FROM events
-       WHERE photographer_id = ?
-       ORDER BY date ASC`,
+      `SELECT e.id, e.name, e.date, e.place, e.status, e.notes,
+              c.userName AS customerName
+       FROM events e
+       JOIN users c ON c.id = e.customer_id
+       WHERE e.photographer_id = ?
+       ORDER BY e.date ASC`,
       [req.user.id],
     );
     return res.json({ events: rows });
@@ -141,7 +163,7 @@ router.get("/customer", verifyToken, async (req, res) => {
   try {
     const db = getDB();
     const [rows] = await db.query(
-      `SELECT e.id, e.name, e.date, e.place, e.status, e.customer_rating,
+      `SELECT e.id, e.name, e.date, e.place, e.status, e.customer_rating, e.notes,
               u.userName AS photographerName, u.id AS photographerId
        FROM events e
        JOIN users u ON u.id = e.photographer_id
@@ -158,15 +180,15 @@ router.get("/customer", verifyToken, async (req, res) => {
 
 // POST /api/events — customer proposes a new event
 router.post("/", verifyToken, async (req, res) => {
-  const { photographerId, name, date, place } = req.body;
+  const { photographerId, name, date, place, notes } = req.body;
   if (!photographerId || !name || !date || !place) {
     return res.status(400).json({ message: "Missing required fields." });
   }
   try {
     const db = getDB();
     const [result] = await db.query(
-      "INSERT INTO events (photographer_id, customer_id, name, date, place, status) VALUES (?, ?, ?, ?, ?, 'pending')",
-      [photographerId, req.user.id, name, date, place],
+      "INSERT INTO events (photographer_id, customer_id, name, date, place, status, notes) VALUES (?, ?, ?, ?, ?, 'pending', ?)",
+      [photographerId, req.user.id, name, date, place, notes || null],
     );
     return res.status(201).json({ id: result.insertId });
   } catch (err) {
@@ -236,6 +258,114 @@ router.patch("/:id/status", verifyToken, async (req, res) => {
   } catch (err) {
     console.error("Event status update error:", err);
     return res.status(500).json({ message: "Server error." });
+  }
+});
+
+// ─── FACE FILTER: find event photos matching a selfie ─────────────────────────
+router.post("/:id/face-filter", verifyToken, selfieUpload.single("selfie"), async (req, res) => {
+  let selfiePath = null;
+  try {
+    const db = getDB();
+    const [rows] = await db.query(
+      "SELECT id FROM events WHERE id = ? AND (photographer_id = ? OR customer_id = ?)",
+      [req.params.id, req.user.id, req.user.id],
+    );
+    if (!rows.length) return res.status(403).json({ message: "Not authorized." });
+    if (!req.file)    return res.status(400).json({ message: "No selfie uploaded." });
+
+    const FACEPP_API_KEY    = process.env.FACEPP_API_KEY;
+    const FACEPP_API_SECRET = process.env.FACEPP_API_SECRET;
+    if (!FACEPP_API_KEY || !FACEPP_API_SECRET) {
+      return res.status(500).json({ message: "Face++ API credentials not configured on server." });
+    }
+
+    const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+    // Helper: POST to Face++ with a 1.1s gap to stay within free-tier 1 QPS limit
+    const faceppPost = async (endpoint, params) => {
+      await sleep(1100);
+      const body = new URLSearchParams({ api_key: FACEPP_API_KEY, api_secret: FACEPP_API_SECRET, ...params });
+      const r = await fetch(`https://api-us.faceplusplus.com/facepp/v3/${endpoint}`, { method: "POST", body });
+      const json = await r.json();
+      if (json.error_message) console.warn(`[Face++] ${endpoint} error:`, json.error_message);
+      return json;
+    };
+
+    // ── Step 1: detect the face in the selfie ─────────────────
+    selfiePath = req.file.path;
+    const selfieBase64 = fs.readFileSync(selfiePath).toString("base64");
+    console.log("[Face++] Detecting selfie face...");
+    const selfieDetect = await faceppPost("detect", { image_base64: selfieBase64 });
+    console.log("[Face++] Selfie detect response:", JSON.stringify(selfieDetect).slice(0, 300));
+
+    if (selfieDetect.error_message) {
+      return res.status(400).json({ message: `Face++ error: ${selfieDetect.error_message}` });
+    }
+    if (!selfieDetect.faces || selfieDetect.faces.length === 0) {
+      return res.status(400).json({ message: "לא זוהה פנים בסלפי. נסה תמונה ברורה יותר." });
+    }
+
+    // Pick the largest face in the selfie (most prominent)
+    const selfieFaceToken = selfieDetect.faces.sort(
+      (a, b) => (b.face_rectangle.width * b.face_rectangle.height) - (a.face_rectangle.width * a.face_rectangle.height),
+    )[0].face_token;
+    console.log("[Face++] Selfie face token:", selfieFaceToken);
+
+    // ── Step 2: scan every gallery photo ──────────────────────
+    const photoDir = path.join(__dirname, "../uploads/events", String(req.params.id));
+    if (!fs.existsSync(photoDir)) return res.json({ photos: [], total: 0 });
+
+    // Face++ does not support webp/heic — skip those formats
+    const photoFiles = fs.readdirSync(photoDir)
+      .filter((f) => /\.(jpe?g|png|gif|bmp)$/i.test(f))
+      .sort();
+
+    console.log(`[Face++] Scanning ${photoFiles.length} photos...`);
+    const matched = [];
+    for (const filename of photoFiles) {
+      try {
+        const photoBase64 = fs.readFileSync(path.join(photoDir, filename)).toString("base64");
+
+        // Detect ALL faces in this gallery photo
+        const photoDetect = await faceppPost("detect", { image_base64: photoBase64 });
+        const faceCount = photoDetect.faces?.length ?? 0;
+        console.log(`[Face++] ${filename}: ${faceCount} face(s) detected`);
+        if (faceCount === 0) continue;
+
+        // Compare the selfie face against every detected face in the photo
+        let bestConfidence = 0;
+        for (const face of photoDetect.faces) {
+          const cmp = await faceppPost("compare", {
+            face_token1: selfieFaceToken,
+            face_token2: face.face_token,
+          });
+          console.log(`[Face++]   compare → confidence: ${cmp.confidence ?? "err"} error: ${cmp.error_message ?? "none"}`);
+          if (!cmp.error_message && typeof cmp.confidence === "number") {
+            if (cmp.confidence > bestConfidence) bestConfidence = cmp.confidence;
+          }
+          if (bestConfidence >= 70) break;
+        }
+
+        console.log(`[Face++] ${filename}: bestConfidence=${bestConfidence}`);
+        if (bestConfidence >= 70) {
+          matched.push({
+            filename,
+            url: `/uploads/events/${req.params.id}/${filename}`,
+            confidence: Math.round(bestConfidence * 10) / 10,
+          });
+        }
+      } catch (err) {
+        console.error(`[Face++] Error scanning ${filename}:`, err.message);
+      }
+    }
+
+    console.log(`[Face++] Done. Matched ${matched.length}/${photoFiles.length}`);
+    return res.json({ photos: matched, total: photoFiles.length });
+  } catch (err) {
+    console.error("Face filter error:", err);
+    return res.status(500).json({ message: "Server error." });
+  } finally {
+    if (selfiePath && fs.existsSync(selfiePath)) fs.unlinkSync(selfiePath);
   }
 });
 

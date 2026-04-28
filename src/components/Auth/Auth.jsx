@@ -369,13 +369,30 @@ function DecorativePanel() {
     <div className={styles.authPanel}>
       <div className={styles.authPanelGrid} />
       <div className={styles.authPanelContent}>
-        <div className={styles.authPanelLogo}>FindMe 📸</div>
+        <div className={styles.authPanelLogo}>
+          <img
+            src="public\findme.png"
+            alt="findMe logo" width={350}
+          ></img>
+        </div>
         <p className={styles.authPanelTagline}>מחברים רגעים לאמנות</p>
         <div className={styles.authPanelFeatures}>
           {[
-            { icon: "🌍", title: "חיפוש לפי מיקום",   desc: "מצא צלמים קרובים אליך" },
-            { icon: "⭐", title: "דירוגים ועדויות",    desc: "בחר על פי ניסיון לקוחות אחרים" },
-            { icon: "📅", title: "ניהול אירועים",      desc: "שלח הצעות ועקוב אחר פגישות" },
+            {
+              icon: "🌍",
+              title: "חיפוש לפי מיקום",
+              desc: "מצא צלמים קרובים אליך",
+            },
+            {
+              icon: "⭐",
+              title: "דירוגים ועדויות",
+              desc: "בחר על פי ניסיון לקוחות אחרים",
+            },
+            {
+              icon: "📅",
+              title: "ניהול אירועים",
+              desc: "שלח הצעות ועקוב אחר פגישות",
+            },
           ].map((f, i) => (
             <div className={styles.authPanelFeature} key={i}>
               <span className={styles.authPanelFeatureIcon}>{f.icon}</span>

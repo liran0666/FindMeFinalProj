@@ -74,7 +74,7 @@ export function Navbar({ user, onLogout }) {
 
         {/* Logo */}
         <div className={styles.logo} onClick={() => navigate(`/${user.userType}`)}>
-          📸 FindMe
+          <img src="public/findme.png" alt="findmeLogo" width={100}></img>
         </div>
       </div>
 

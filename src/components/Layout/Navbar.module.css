@@ -13,13 +13,17 @@
 
 .logo {
   font-size: 18px;
+  margin: 0;
+  padding: 0;
   font-weight: 700;
   color: white;
   cursor: pointer;
   transition: opacity 0.2s ease;
   user-select: none;
 }
-.logo:hover { opacity: 0.8; }
+.logo:hover {
+  opacity: 0.8;
+}
 
 /* ── Hamburger button ────────────────────────────────────────────────────── */
 .hamburger {
@@ -34,7 +38,9 @@
   border: 1.5px solid rgba(255, 255, 255, 0.15);
   border-radius: 8px;
   cursor: pointer;
-  transition: border-color 0.2s ease, background 0.2s ease;
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease;
 }
 .hamburger:hover {
   background: rgba(59, 130, 246, 0.15);
@@ -46,14 +52,24 @@
   height: 2px;
   background: #cbd5e1;
   border-radius: 2px;
-  transition: transform 0.25s ease, opacity 0.25s ease, width 0.25s ease;
+  transition:
+    transform 0.25s ease,
+    opacity 0.25s ease,
+    width 0.25s ease;
   transform-origin: center;
 }
 
 /* Animate to X when open */
-.hamburgerOpen span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
-.hamburgerOpen span:nth-child(2) { opacity: 0; transform: scaleX(0); }
-.hamburgerOpen span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+.hamburgerOpen span:nth-child(1) {
+  transform: translateY(7px) rotate(45deg);
+}
+.hamburgerOpen span:nth-child(2) {
+  opacity: 0;
+  transform: scaleX(0);
+}
+.hamburgerOpen span:nth-child(3) {
+  transform: translateY(-7px) rotate(-45deg);
+}
 
 /* ── Overlay ─────────────────────────────────────────────────────────────── */
 .overlay {
@@ -65,8 +81,12 @@
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to   { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 /* ── Drawer ──────────────────────────────────────────────────────────────── */
@@ -144,7 +164,9 @@
   cursor: pointer;
   padding: 4px 8px;
   border-radius: 6px;
-  transition: color 0.2s, background 0.2s;
+  transition:
+    color 0.2s,
+    background 0.2s;
 }
 .drawerClose:hover {
   color: #f1f5f9;
@@ -172,7 +194,9 @@
   font-size: 15px;
   text-align: right;
   cursor: pointer;
-  transition: background 0.18s ease, color 0.18s ease;
+  transition:
+    background 0.18s ease,
+    color 0.18s ease;
   width: 100%;
 }
 

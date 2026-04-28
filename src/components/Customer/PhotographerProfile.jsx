@@ -115,6 +115,7 @@ export function PhotographerProfile() {
           name: proposal.eventType,
           date: proposal.date,
           place: proposal.location,
+          notes: proposal.description || null,
         }),
       });
       if (!res.ok) throw new Error("שגיאה בשליחת הבקשה");
@@ -161,7 +162,6 @@ export function PhotographerProfile() {
               >
                 📩 שלח הצעת אירוע
               </button>
-              <button className={styles.contactBtn}>💬 שלח הודעה</button>
             </div>
           </div>
         </div>
@@ -215,16 +215,19 @@ export function PhotographerProfile() {
             <div className={styles.sectionTitle}>📊 נתונים</div>
             <div className={styles.statsList}>
               {[
-                { icon: "⭐", label: "דירוג ממוצע", value: p.rating !== null ? `${p.rating}/5` : "—" },
-                { icon: "📸", label: "אירועים שצולמו", value: "247" },
-                { icon: "👥", label: "לקוחות חוזרים", value: "68%" },
-                { icon: "⚡", label: "זמן תגובה", value: "< שעה" },
-                { icon: "📅", label: "חבר מאז", value: "ינואר 2023" },
+                {
+                  icon: "⭐",
+                  label: "דירוג ממוצע",
+                  value: p.rating !== null ? `${p.rating} / 5` : "אין דירוג עדיין",
+                },
+                {
+                  icon: "📸",
+                  label: "אירועים שצולמו",
+                  value: photographer.eventsFilmed ?? 0,
+                },
               ].map((s, i) => (
                 <div key={i} className={styles.statRow}>
-                  <span className={styles.statLabel}>
-                    {s.icon} {s.label}
-                  </span>
+                  <span className={styles.statLabel}>{s.icon} {s.label}</span>
                   <span className={styles.statValue}>{s.value}</span>
                 </div>
               ))}

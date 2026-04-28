@@ -130,28 +130,37 @@ export function PhotographerEvents() {
   );
 }
 
+const EVENT_ICONS_MAP = { חתונה: "💍", "בר מצווה": "✡️", "יום הולדת": "🎂", אחר: "📸" };
+
 function EventDetailsModal({ event, onClose, onGallery }) {
   const d = new Date(event.date);
   const dateStr = `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
+  const icon = Object.entries(EVENT_ICONS_MAP).find(([k]) => event.name?.includes(k))?.[1] ?? "📸";
+
   return (
     <div className={styles.modalOverlay} onClick={onClose}>
       <div className={styles.modalBox} onClick={(e) => e.stopPropagation()}>
         <button className={styles.modalClose} onClick={onClose}>✕</button>
-        <div className={styles.modalIcon}>{["💍","🎂","📸"][Math.floor(Math.random()*3)]}</div>
+        <div className={styles.modalIcon}>{icon}</div>
         <h2 className={styles.modalTitle}>{event.name}</h2>
         <div className={styles.modalDetails}>
-          <div className={styles.modalDetailRow}>
-            <span className={styles.modalDetailLabel}>📅 תאריך</span>
-            <span className={styles.modalDetailValue}>{dateStr}</span>
-          </div>
-          <div className={styles.modalDetailRow}>
-            <span className={styles.modalDetailLabel}>📍 מיקום</span>
-            <span className={styles.modalDetailValue}>{event.place}</span>
-          </div>
-          <div className={styles.modalDetailRow}>
-            <span className={styles.modalDetailLabel}>סטטוס</span>
-            <span className={styles.modalDetailValue}>✅ פעיל</span>
-          </div>
+          {[
+            { label: "📅 תאריך", value: dateStr },
+            { label: "📍 מיקום", value: event.place },
+            { label: "👤 לקוח",  value: event.customerName || "—" },
+          ].map((row, i) => (
+            <div key={i} className={styles.modalDetailRow}>
+              <span className={styles.modalDetailLabel}>{row.label}</span>
+              <span className={styles.modalDetailValue}>{row.value}</span>
+            </div>
+          ))}
+
+          {event.notes && (
+            <div className={styles.modalDetailRow} style={{ flexDirection: "column", alignItems: "flex-start", gap: 6 }}>
+              <span className={styles.modalDetailLabel}>📝 הערות</span>
+              <span className={styles.notesText}>{event.notes}</span>
+            </div>
+          )}
         </div>
         <button
           className={styles.galleryModalBtn}

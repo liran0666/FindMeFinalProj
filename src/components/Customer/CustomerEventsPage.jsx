@@ -285,6 +285,15 @@ function DetailsModal({ event: ev, onClose, onRate }) {
               </div>
             </div>
           ))}
+          {ev.notes && (
+            <div className={styles.detailsRow}>
+              <span className={styles.detailsRowIcon}>📝</span>
+              <div className={styles.detailsRowBody}>
+                <div className={styles.detailsRowLabel}>הערות</div>
+                <div className={styles.detailsRowValue} style={{ whiteSpace: "pre-wrap" }}>{ev.notes}</div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Status timeline */}

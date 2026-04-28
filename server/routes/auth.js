@@ -1,5 +1,6 @@
 import express from "express";
 import jwt from "jsonwebtoken";
+import bcrypt from "bcryptjs";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
@@ -59,6 +60,8 @@ router.post("/register", upload.single("profile_pic"), async (req, res) => {
     const s3 = userType === "photographer" ? (service3 || 0) : 0;
     const profilePic = req.file ? `/uploads/${req.file.filename}` : null;
 
+    const hashedPassword = await bcrypt.hash(password, 10);
+
     const [result] = await db.query(
       `INSERT INTO users (userType, email, userName, password, dateOfBirth, city, rating, service1, service2, service3, profile_pic)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -66,7 +69,7 @@ router.post("/register", upload.single("profile_pic"), async (req, res) => {
         userType || "user",
         email,
         username,
-        password,
+        hashedPassword,
         dateOfBirth || null,
         city || null,
         rating,
@@ -104,8 +107,8 @@ router.post("/login", async (req, res) => {
     const db = getDB();
 
     const [rows] = await db.query(
-      "SELECT * FROM users WHERE email = ? AND password = ?",
-      [email, password],
+      "SELECT * FROM users WHERE email = ?",
+      [email],
     );
 
     if (rows.length === 0) {
@@ -113,6 +116,10 @@ router.post("/login", async (req, res) => {
     }
 
     const user = rows[0];
+    const passwordMatch = await bcrypt.compare(password, user.password);
+    if (!passwordMatch) {
+      return res.status(401).json({ message: "Invalid email or password." });
+    }
 
     const token = jwt.sign(
       { id: user.id, userName: user.userName, email: user.email, userType: user.userType },
@@ -323,7 +330,8 @@ router.get("/photographers/:id", async (req, res) => {
       SELECT u.id, u.userName, u.city, u.rating, u.dateOfBirth, u.profile_pic,
              s1.type AS service1Name,
              s2.type AS service2Name,
-             s3.type AS service3Name
+             s3.type AS service3Name,
+             (SELECT COUNT(*) FROM events e WHERE e.photographer_id = u.id AND e.status = 'active') AS eventsFilmed
       FROM users u
       LEFT JOIN services s1 ON s1.id = u.service1 AND u.service1 > 0
       LEFT JOIN services s2 ON s2.id = u.service2 AND u.service2 > 0
