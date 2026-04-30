@@ -3,7 +3,7 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-// Singleton pattern — one pool for the entire app lifetime
+
 let instance = null;
 
 function getDB() {

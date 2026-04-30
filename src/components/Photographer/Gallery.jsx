@@ -138,6 +138,26 @@ export function GalleryPage({ isCustomer = false }) {
 
   const clearSelection = () => setSelected(new Set());
 
+  const selectAll = () => setSelected(new Set(displayedPhotos.map((p) => p.filename)));
+
+  const deleteSelected = async () => {
+    if (!confirm(`למחוק ${selected.size} תמונות?`)) return;
+    const token = localStorage.getItem("token");
+    for (const filename of selected) {
+      try {
+        await fetch(`${API}/${eventId}/photos/${filename}`, {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setPhotos((prev) => prev.filter((p) => p.filename !== filename));
+        if (filteredPhotos) setFilteredPhotos((prev) => prev.filter((p) => p.filename !== filename));
+      } catch {
+        setError("שגיאה במחיקת תמונה.");
+      }
+    }
+    setSelected(new Set());
+  };
+
   const downloadSelected = async () => {
     for (const filename of selected) {
       const photo = displayedPhotos.find((p) => p.filename === filename);
@@ -288,6 +308,12 @@ export function GalleryPage({ isCustomer = false }) {
 
       {/* Photo grid */}
       {!loading && displayedPhotos.length > 0 && (
+        <>
+        <div className={styles.gridHeader}>
+          <button className={styles.selectAllBtn} onClick={selectAll}>
+            ☑️ בחר הכל ({displayedPhotos.length})
+          </button>
+        </div>
         <div className={styles.photoGrid}>
           {displayedPhotos.map((photo) => {
             const isSelected = selected.has(photo.filename);
@@ -341,6 +367,7 @@ export function GalleryPage({ isCustomer = false }) {
             );
           })}
         </div>
+        </>
       )}
 
       {/* Selection bar */}
@@ -349,6 +376,11 @@ export function GalleryPage({ isCustomer = false }) {
           <span className={styles.selectionCount}>{selected.size} תמונות נבחרו</span>
           <div className={styles.selectionActions}>
             <button className={styles.selectionClearBtn} onClick={clearSelection}>נקה</button>
+            {!isCustomer && (
+              <button className={styles.selectionDeleteBtn} onClick={deleteSelected}>
+                🗑️ מחק ({selected.size})
+              </button>
+            )}
             <button className={styles.selectionDownloadBtn} onClick={downloadSelected}>
               ⬇️ הורד ({selected.size})
             </button>

@@ -303,11 +303,16 @@ router.post("/:id/face-filter", verifyToken, selfieUpload.single("selfie"), asyn
 
     const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-    // Helper: POST to Face++ with a 1.1s gap to stay within free-tier 1 QPS limit
+    
     const faceppPost = async (endpoint, params) => {
       await sleep(1100);
       const body = new URLSearchParams({ api_key: FACEPP_API_KEY, api_secret: FACEPP_API_SECRET, ...params });
       const r = await fetch(`https://api-us.faceplusplus.com/facepp/v3/${endpoint}`, { method: "POST", body });
+      if (!r.ok) {
+        const text = await r.text();
+        console.error(`[Face++] ${endpoint} HTTP ${r.status}:`, text.slice(0, 300));
+        throw new Error(`Face++ HTTP ${r.status}`);
+      }
       const json = await r.json();
       if (json.error_message) console.warn(`[Face++] ${endpoint} error:`, json.error_message);
       return json;

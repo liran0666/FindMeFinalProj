@@ -27,7 +27,7 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use("/api/auth", authRoutes);
 app.use("/api/events", eventRoutes);
 
-// Always return JSON errors — prevents "<!DOCTYPE..." responses
+
 app.use((err, req, res, _next) => {
   console.error("Unhandled error:", err.message);
   res.status(err.status || err.statusCode || 500).json({ message: err.message || "Server error." });

@@ -1,6 +1,7 @@
 // PhotographerDashboard.jsx
 
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import styles from "./PhotographerDashboard.module.css";
 
 const HEBREW_MONTHS = [
@@ -13,8 +14,6 @@ const EVENT_ICONS = {
   "בר מצווה": "✡️",
   "יום הולדת": "🎂",
   אחר: "📸",
-  הכרמינה: "🎼",
-  הגירה: "✈️",
 };
 
 function getEventIcon(type) {
@@ -41,6 +40,7 @@ function isToday(dateVal) {
 const API = "http://localhost:5000/api/events";
 
 export function PhotographerDashboard({ user }) {
+  const navigate = useNavigate();
   const [requests, setRequests] = useState([]);   // status = "pending"
   const [events, setEvents] = useState([]);        // status = "active"
   const [loading, setLoading] = useState(true);
@@ -184,6 +184,7 @@ export function PhotographerDashboard({ user }) {
       <div className={styles.section}>
         <div className={styles.sectionHeader}>
           <div className={styles.sectionTitle}>📅 אירועים</div>
+          <button className={styles.seeAllBtn} onClick={() => navigate("/photographer/events")}>כל האירועים ←</button>
         </div>
 
         {loading ? (
