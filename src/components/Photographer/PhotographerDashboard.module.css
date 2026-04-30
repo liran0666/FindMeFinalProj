@@ -514,3 +514,83 @@
   flex: 1;
   justify-content: center;
 }
+
+/* Edit event form */
+.editForm {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  text-align: right;
+}
+
+.editField {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.editLabel {
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.editInput {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-bright);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  color: var(--white);
+  font-size: 14px;
+  width: 100%;
+  box-sizing: border-box;
+  direction: rtl;
+  transition: border-color var(--transition-fast);
+}
+
+.editInput:focus {
+  outline: none;
+  border-color: var(--blue-500);
+}
+
+.editTextarea {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-bright);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  color: var(--white);
+  font-size: 14px;
+  width: 100%;
+  box-sizing: border-box;
+  direction: rtl;
+  resize: vertical;
+  font-family: inherit;
+  transition: border-color var(--transition-fast);
+}
+
+.editTextarea:focus {
+  outline: none;
+  border-color: var(--blue-500);
+}
+
+.editError {
+  font-size: 13px;
+  color: #f87171;
+  text-align: center;
+}
+
+.galleryModalBtn {
+  flex: 1;
+  padding: 10px 16px;
+  background: linear-gradient(135deg, var(--blue-600), var(--blue-500));
+  border: none;
+  border-radius: var(--radius-sm);
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity var(--transition-fast);
+}
+
+.galleryModalBtn:hover { opacity: 0.88; }
+.galleryModalBtn:disabled { opacity: 0.5; cursor: not-allowed; }

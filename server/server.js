@@ -38,19 +38,6 @@ async function startServer() {
     const db = getDB();
     await db.query("SELECT 1"); // lightweight ping
     console.log("✅ MySQL connected successfully");
-    // Add customer_rating column if it doesn't exist yet
-    try {
-      await db.query("ALTER TABLE events ADD COLUMN customer_rating TINYINT NULL");
-      console.log("✅ customer_rating column added");
-    } catch (e) {
-      if (e.errno !== 1060) throw e;
-    }
-    try {
-      await db.query("ALTER TABLE events ADD COLUMN notes TEXT NULL");
-      console.log("✅ notes column added");
-    } catch (e) {
-      if (e.errno !== 1060) throw e;
-    }
 
     app.listen(PORT, () => {
       console.log(`🚀 Server running on http://localhost:${PORT}`);

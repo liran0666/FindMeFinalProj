@@ -239,6 +239,28 @@ router.post("/:id/rate", verifyToken, async (req, res) => {
   }
 });
 
+// PATCH /api/events/:id/details — photographer edits event details
+router.patch("/:id/details", verifyToken, async (req, res) => {
+  const { name, date, place, notes } = req.body;
+  if (!name || !date || !place) {
+    return res.status(400).json({ message: "name, date and place are required." });
+  }
+  try {
+    const db = getDB();
+    const [result] = await db.query(
+      "UPDATE events SET name = ?, date = ?, place = ?, notes = ? WHERE id = ? AND photographer_id = ?",
+      [name, date, place, notes || null, req.params.id, req.user.id],
+    );
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: "Event not found." });
+    }
+    return res.json({ success: true });
+  } catch (err) {
+    console.error("Event details update error:", err);
+    return res.status(500).json({ message: "Server error." });
+  }
+});
+
 // PATCH /api/events/:id/status — photographer accepts (active) or declines (declined)
 router.patch("/:id/status", verifyToken, async (req, res) => {
   const { status } = req.body;
@@ -343,11 +365,11 @@ router.post("/:id/face-filter", verifyToken, selfieUpload.single("selfie"), asyn
           if (!cmp.error_message && typeof cmp.confidence === "number") {
             if (cmp.confidence > bestConfidence) bestConfidence = cmp.confidence;
           }
-          if (bestConfidence >= 70) break;
+          if (bestConfidence >= 80) break;
         }
 
         console.log(`[Face++] ${filename}: bestConfidence=${bestConfidence}`);
-        if (bestConfidence >= 70) {
+        if (bestConfidence >= 80) {
           matched.push({
             filename,
             url: `/uploads/events/${req.params.id}/${filename}`,

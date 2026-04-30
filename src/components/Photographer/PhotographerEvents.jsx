@@ -11,11 +11,11 @@ const HEBREW_MONTHS = [
   "יולי", "אוג", "ספט", "אוק", "נוב", "דצמ",
 ];
 
-const EVENT_ICONS = {
-  חתונה: "💍", "בר מצווה": "✡️", "יום הולדת": "🎂", אחר: "📸",
-};
+const EVENT_TYPES = ["חתונה", "בר/בת מצווה", "יום הולדת", "סיום לימודים", "אירוע עסקי", "אחר"];
+
+const EVENT_ICONS_MAP = { חתונה: "💍", "בר מצווה": "✡️", "יום הולדת": "🎂", אחר: "📸" };
 function getEventIcon(type) {
-  const match = Object.entries(EVENT_ICONS).find(([k]) => type?.includes(k));
+  const match = Object.entries(EVENT_ICONS_MAP).find(([k]) => type?.includes(k));
   return match ? match[1] : "📸";
 }
 function isPast(dateVal) {
@@ -27,6 +27,10 @@ function isToday(dateVal) {
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const d = new Date(dateVal); d.setHours(0, 0, 0, 0);
   return d.getTime() === today.getTime();
+}
+function toInputDate(dateVal) {
+  const d = new Date(dateVal);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
 export function PhotographerEvents() {
@@ -40,12 +44,16 @@ export function PhotographerEvents() {
     fetch(`${API}/photographer`, { headers: { Authorization: `Bearer ${token}` } })
       .then((r) => r.json())
       .then((data) => {
-        if (data.events)
-          setEvents(data.events.filter((e) => e.status === "active"));
+        if (data.events) setEvents(data.events.filter((e) => e.status === "active"));
       })
       .catch((err) => console.error(err))
       .finally(() => setLoading(false));
   }, []);
+
+  const handleUpdate = (updated) => {
+    setEvents((prev) => prev.map((e) => e.id === updated.id ? { ...e, ...updated } : e));
+    setSelectedEvent((prev) => prev ? { ...prev, ...updated } : null);
+  };
 
   const pastEvents     = events.filter((e) => isPast(e.date));
   const todayEvents    = events.filter((e) => isToday(e.date));
@@ -98,22 +106,16 @@ export function PhotographerEvents() {
         ) : (
           <>
             {todayEvents.length > 0 && (
-              <>
-                <div className={styles.eventGroupLabel}>היום</div>
-                <div className={styles.eventsList}>{todayEvents.map(renderEventRow)}</div>
-              </>
+              <><div className={styles.eventGroupLabel}>היום</div>
+              <div className={styles.eventsList}>{todayEvents.map(renderEventRow)}</div></>
             )}
             {upcomingEvents.length > 0 && (
-              <>
-                <div className={styles.eventGroupLabel}>עתידיים</div>
-                <div className={styles.eventsList}>{upcomingEvents.map(renderEventRow)}</div>
-              </>
+              <><div className={styles.eventGroupLabel}>עתידיים</div>
+              <div className={styles.eventsList}>{upcomingEvents.map(renderEventRow)}</div></>
             )}
             {pastEvents.length > 0 && (
-              <>
-                <div className={styles.eventGroupLabel}>הושלמו</div>
-                <div className={styles.eventsList}>{pastEvents.map(renderEventRow)}</div>
-              </>
+              <><div className={styles.eventGroupLabel}>הושלמו</div>
+              <div className={styles.eventsList}>{pastEvents.map(renderEventRow)}</div></>
             )}
           </>
         )}
@@ -124,50 +126,120 @@ export function PhotographerEvents() {
           event={selectedEvent}
           onClose={() => setSelectedEvent(null)}
           onGallery={(id) => navigate(`/photographer/gallery/${id}`)}
+          onUpdate={handleUpdate}
         />
       )}
     </div>
   );
 }
 
-const EVENT_ICONS_MAP = { חתונה: "💍", "בר מצווה": "✡️", "יום הולדת": "🎂", אחר: "📸" };
+function EventDetailsModal({ event, onClose, onGallery, onUpdate }) {
+  const [editing, setEditing] = useState(false);
+  const [form, setForm] = useState({
+    name:  event.name  || "",
+    date:  toInputDate(event.date),
+    place: event.place || "",
+    notes: event.notes || "",
+  });
+  const [saving, setSaving] = useState(false);
+  const [error,  setError]  = useState("");
 
-function EventDetailsModal({ event, onClose, onGallery }) {
+  const icon = Object.entries(EVENT_ICONS_MAP).find(([k]) => event.name?.includes(k))?.[1] ?? "📸";
   const d = new Date(event.date);
   const dateStr = `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
-  const icon = Object.entries(EVENT_ICONS_MAP).find(([k]) => event.name?.includes(k))?.[1] ?? "📸";
+
+  const set = (field) => (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
+
+  const handleSave = async () => {
+    if (!form.name || !form.date || !form.place) {
+      setError("נא למלא סוג אירוע, תאריך ומיקום.");
+      return;
+    }
+    setSaving(true);
+    setError("");
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API}/${event.id}/details`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify(form),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "שגיאה בשמירה.");
+      onUpdate({ id: event.id, ...form });
+      setEditing(false);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <div className={styles.modalOverlay} onClick={onClose}>
       <div className={styles.modalBox} onClick={(e) => e.stopPropagation()}>
         <button className={styles.modalClose} onClick={onClose}>✕</button>
         <div className={styles.modalIcon}>{icon}</div>
-        <h2 className={styles.modalTitle}>{event.name}</h2>
-        <div className={styles.modalDetails}>
-          {[
-            { label: "📅 תאריך", value: dateStr },
-            { label: "📍 מיקום", value: event.place },
-            { label: "👤 לקוח",  value: event.customerName || "—" },
-          ].map((row, i) => (
-            <div key={i} className={styles.modalDetailRow}>
-              <span className={styles.modalDetailLabel}>{row.label}</span>
-              <span className={styles.modalDetailValue}>{row.value}</span>
-            </div>
-          ))}
+        <h2 className={styles.modalTitle}>{editing ? "עריכת אירוע" : event.name}</h2>
 
-          {event.notes && (
-            <div className={styles.modalDetailRow} style={{ flexDirection: "column", alignItems: "flex-start", gap: 6 }}>
-              <span className={styles.modalDetailLabel}>📝 הערות</span>
-              <span className={styles.notesText}>{event.notes}</span>
+        {editing ? (
+          /* ── Edit form ── */
+          <div className={styles.editForm}>
+            <div className={styles.editField}>
+              <label className={styles.editLabel}>סוג אירוע</label>
+              <select className={styles.editInput} value={form.name} onChange={set("name")}>
+                {EVENT_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+              </select>
             </div>
-          )}
-        </div>
-        <button
-          className={styles.galleryModalBtn}
-          onClick={() => { onClose(); onGallery(event.id); }}
-        >
-          🖼️ פתח גלריה
-        </button>
+            <div className={styles.editField}>
+              <label className={styles.editLabel}>תאריך</label>
+              <input type="date" className={styles.editInput} value={form.date} onChange={set("date")} />
+            </div>
+            <div className={styles.editField}>
+              <label className={styles.editLabel}>מיקום</label>
+              <input type="text" className={styles.editInput} placeholder="מיקום האירוע" value={form.place} onChange={set("place")} />
+            </div>
+            <div className={styles.editField}>
+              <label className={styles.editLabel}>הערות</label>
+              <textarea className={styles.editTextarea} placeholder="הערות..." value={form.notes} onChange={set("notes")} rows={3} />
+            </div>
+            {error && <div className={styles.editError}>{error}</div>}
+            <div className={styles.modalActionRow}>
+              <button className={styles.viewBtn} onClick={() => { setEditing(false); setError(""); }} disabled={saving}>ביטול</button>
+              <button className={styles.galleryModalBtn} onClick={handleSave} disabled={saving}>
+                {saving ? "שומר..." : "💾 שמור"}
+              </button>
+            </div>
+          </div>
+        ) : (
+          /* ── View mode ── */
+          <>
+            <div className={styles.modalDetails}>
+              {[
+                { label: "📅 תאריך", value: dateStr },
+                { label: "📍 מיקום", value: event.place },
+                { label: "👤 לקוח",  value: event.customerName || "—" },
+              ].map((row, i) => (
+                <div key={i} className={styles.modalDetailRow}>
+                  <span className={styles.modalDetailLabel}>{row.label}</span>
+                  <span className={styles.modalDetailValue}>{row.value}</span>
+                </div>
+              ))}
+              {event.notes && (
+                <div className={styles.modalDetailRow} style={{ flexDirection: "column", alignItems: "flex-start", gap: 6 }}>
+                  <span className={styles.modalDetailLabel}>📝 הערות</span>
+                  <span className={styles.notesText}>{event.notes}</span>
+                </div>
+              )}
+            </div>
+            <div className={styles.modalActionRow}>
+              <button className={styles.viewBtn} onClick={() => setEditing(true)}>✏️ עריכה</button>
+              <button className={styles.galleryModalBtn} onClick={() => { onClose(); onGallery(event.id); }}>
+                🖼️ פתח גלריה
+              </button>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
