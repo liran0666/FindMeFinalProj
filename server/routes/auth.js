@@ -81,7 +81,7 @@ router.post("/register", upload.single("profile_pic"), async (req, res) => {
     const token = jwt.sign(
       { id: result.insertId, userName: username, email, userType: userType || "user" },
       JWT_SECRET,
-      { expiresIn: "7d" },
+      { expiresIn: "6Hrs" },
     );
 
     return res.status(201).json({
@@ -124,7 +124,7 @@ router.post("/login", async (req, res) => {
     const token = jwt.sign(
       { id: user.id, userName: user.userName, email: user.email, userType: user.userType },
       JWT_SECRET,
-      { expiresIn: "7d" },
+      { expiresIn: "6Hrs" },
     );
 
     return res.status(200).json({
@@ -149,7 +149,7 @@ router.post("/login", async (req, res) => {
   }
 });
 
-// ─── ME ───────────────────────────────────────────────────────────────────────
+
 router.get("/me", async (req, res) => {
   const authHeader = req.headers.authorization;
   if (!authHeader?.startsWith("Bearer ")) {
@@ -173,7 +173,7 @@ router.get("/me", async (req, res) => {
   }
 });
 
-// ─── UPDATE PROFILE PIC ──────────────────────────────────────────────────────
+
 router.put("/profile-pic", upload.single("profile_pic"), async (req, res) => {
   const authHeader = req.headers.authorization;
   if (!authHeader?.startsWith("Bearer ")) {

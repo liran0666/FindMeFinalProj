@@ -143,6 +143,10 @@ export function RegisterPage({ onRegister }) {
       setError("אנא מלא את כל השדות החובה");
       return;
     }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
+      setError("כתובת האימייל אינה תקינה");
+      return;
+    }
     if (form.password !== form.confirmPassword) {
       setError("הסיסמאות אינן תואמות");
       return;
@@ -375,7 +379,7 @@ function DecorativePanel() {
             alt="findMe logo" width={350}
           ></img>
         </div>
-        <p className={styles.authPanelTagline}>מחברים רגעים לאמנות</p>
+        <p className={styles.authPanelTagline}> תמונה שווה אלף מילים</p>
         <div className={styles.authPanelFeatures}>
           {[
             {

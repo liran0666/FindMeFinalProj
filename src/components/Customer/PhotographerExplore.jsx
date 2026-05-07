@@ -15,11 +15,11 @@ function calcAge(dob) {
 export function PhotographerExplore() {
   const navigate = useNavigate();
   const [photographers, setPhotographers] = useState([]);
-  const [search, setSearch]     = useState("");
-  const [sort, setSort]         = useState("rating");
+  const [services, setServices]           = useState([]);
+  const [search, setSearch]               = useState("");
+  const [sort, setSort]                   = useState("rating");
   const [cityFilter, setCityFilter]       = useState("");
-  const [minAge, setMinAge]               = useState("");
-  const [maxAge, setMaxAge]               = useState("");
+  const [serviceFilter, setServiceFilter] = useState("");
   const [minRating, setMinRating]         = useState("");
   const [filtersOpen, setFiltersOpen]     = useState(false);
 
@@ -28,6 +28,11 @@ export function PhotographerExplore() {
       .then((r) => r.json())
       .then((data) => setPhotographers(data))
       .catch((err) => console.error(err));
+
+    fetch("http://localhost:5000/api/auth/services")
+      .then((r) => r.json())
+      .then((data) => setServices(data))
+      .catch(() => {});
   }, []);
 
   const formatted = photographers.map((p) => ({
@@ -37,16 +42,14 @@ export function PhotographerExplore() {
     rating: p.rating >= 0 ? p.rating : null,
     age: calcAge(p.dateOfBirth),
     services: [p.service1Name, p.service2Name, p.service3Name].filter(Boolean),
-    emoji: "📸",
     photoUrl: p.profile_pic ? `http://localhost:5000${p.profile_pic}` : null,
   }));
 
-  const activeFilterCount = [cityFilter, minAge, maxAge, minRating].filter(Boolean).length;
+  const activeFilterCount = [cityFilter, serviceFilter, minRating].filter(Boolean).length;
 
   const clearFilters = () => {
     setCityFilter("");
-    setMinAge("");
-    setMaxAge("");
+    setServiceFilter("");
     setMinRating("");
   };
 
@@ -54,8 +57,7 @@ export function PhotographerExplore() {
     .filter((p) => {
       if (search && !p.name.includes(search) && !p.location.includes(search)) return false;
       if (cityFilter && !p.location.toLowerCase().includes(cityFilter.toLowerCase())) return false;
-      if (minAge && (p.age === null || p.age < Number(minAge))) return false;
-      if (maxAge && (p.age === null || p.age > Number(maxAge))) return false;
+      if (serviceFilter && !p.services.includes(serviceFilter)) return false;
       if (minRating && (p.rating === null || p.rating < Number(minRating))) return false;
       return true;
     })
@@ -86,7 +88,6 @@ export function PhotographerExplore() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
-          <button className={styles.searchBtn}>🔍 חיפוש</button>
         </div>
       </div>
 
@@ -106,7 +107,7 @@ export function PhotographerExplore() {
           <span className={styles.sortLabel}>מיין לפי:</span>
           {[
             { value: "rating", label: "⭐ דירוג" },
-            { value: "name",   label: "🔤 שם" },
+            { value: "name", label: "🔤 שם" },
           ].map((o) => (
             <button
               key={o.value}
@@ -125,7 +126,6 @@ export function PhotographerExplore() {
       {filtersOpen && (
         <div className={styles.filterPanel}>
           <div className={styles.filterPanelGrid}>
-
             <div className={styles.filterField}>
               <label className={styles.filterFieldLabel}>📍 עיר</label>
               <input
@@ -137,44 +137,35 @@ export function PhotographerExplore() {
             </div>
 
             <div className={styles.filterField}>
-              <label className={styles.filterFieldLabel}>🎂 גיל מינימלי</label>
-              <input
+              <label className={styles.filterFieldLabel}>🎨 סוג שירות</label>
+              <select
                 className={styles.filterInput}
-                type="number"
-                placeholder="18"
-                min="16"
-                max="120"
-                value={minAge}
-                onChange={(e) => setMinAge(e.target.value)}
-              />
+                value={serviceFilter}
+                onChange={(e) => setServiceFilter(e.target.value)}
+              >
+                <option value="">כל השירותים</option>
+                {services.map((s) => (
+                  <option key={s.id} value={s.type}>{s.type}</option>
+                ))}
+              </select>
             </div>
 
             <div className={styles.filterField}>
-              <label className={styles.filterFieldLabel}>🎂 גיל מקסימלי</label>
-              <input
-                className={styles.filterInput}
-                type="number"
-                placeholder="70"
-                min="16"
-                max="120"
-                value={maxAge}
-                onChange={(e) => setMaxAge(e.target.value)}
-              />
-            </div>
-
-            <div className={styles.filterField}>
-              <label className={styles.filterFieldLabel}>⭐ דירוג מינימלי</label>
+              <label className={styles.filterFieldLabel}>
+                ⭐ דירוג מינימלי
+              </label>
               <select
                 className={styles.filterInput}
                 value={minRating}
                 onChange={(e) => setMinRating(e.target.value)}
               >
                 <option value="">כולם</option>
-                <option value="1">1+</option>
-                <option value="2">2+</option>
-                <option value="3">3+</option>
-                <option value="4">4+</option>
-                <option value="4.5">4.5+</option>
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="4.5">4.5</option>
+                <option value="5">5</option>
               </select>
             </div>
           </div>
@@ -216,7 +207,7 @@ function PhotographerCard({ photographer: p, onClick }) {
         {p.photoUrl ? (
           <img className={styles.cardImage} src={p.photoUrl} alt={p.name} />
         ) : (
-          <div className={styles.cardImagePlaceholder}>{p.emoji}</div>
+          <div className={styles.cardImagePlaceholder}>📸</div>
         )}
       </div>
 

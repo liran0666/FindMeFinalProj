@@ -197,6 +197,25 @@ router.post("/", verifyToken, async (req, res) => {
   }
 });
 
+// GET /api/events/ratings/:photographerId — public ratings list for a photographer
+router.get("/ratings/:photographerId", async (req, res) => {
+  try {
+    const db = getDB();
+    const [rows] = await db.query(
+      `SELECT e.date, e.customer_rating, c.userName AS reviewerName
+       FROM events e
+       JOIN users c ON c.id = e.customer_id
+       WHERE e.photographer_id = ? AND e.customer_rating IS NOT NULL
+       ORDER BY e.date DESC`,
+      [req.params.photographerId],
+    );
+    return res.json({ ratings: rows });
+  } catch (err) {
+    console.error("Ratings fetch error:", err);
+    return res.status(500).json({ message: "Server error." });
+  }
+});
+
 // POST /api/events/:id/rate — customer rates a completed event
 router.post("/:id/rate", verifyToken, async (req, res) => {
   const rating = parseInt(req.body.rating);
@@ -238,6 +257,7 @@ router.post("/:id/rate", verifyToken, async (req, res) => {
     return res.status(500).json({ message: "Server error." });
   }
 });
+
 
 // PATCH /api/events/:id/details — photographer edits event details
 router.patch("/:id/details", verifyToken, async (req, res) => {

@@ -85,7 +85,7 @@ export default function CustomerDashboard({ user }) {
             { icon: "📅", value: upcoming.length, label: "אירועים קרובים" },
             { icon: "✅", value: totalPast,       label: "הושלמו" },
           ].map((s, i) => (
-            <div key={i} className={styles.statCube}>
+            <div key={i} className={styles.statCube} onClick={() => navigate("/customer/events")} style={{ cursor: "pointer" }}>
               <div className={styles.statIcon}>{s.icon}</div>
               <div className={styles.statValue}>{s.value}</div>
               <div className={styles.statLabel}>{s.label}</div>
@@ -102,7 +102,7 @@ export default function CustomerDashboard({ user }) {
             {events.length === 0 ? "עדיין לא יצרת אירוע" : "אין אירועים קרובים"}
           </div>
           <div className={styles.emptyText}>
-            מצא צלם מקצועי ושלח לו הצעת אירוע
+            חפש צלם מקצועי ושלח לו הצעת אירוע
           </div>
           <button
             className={styles.exploreBtn}

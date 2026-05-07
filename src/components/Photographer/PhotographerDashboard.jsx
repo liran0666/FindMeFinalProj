@@ -138,12 +138,12 @@ export function PhotographerDashboard({ user }) {
       {/* Summary row */}
       <div className={styles.summaryRow}>
         {[
-          { icon: "📩", value: requests.length,      label: "בקשות ממתינות" },
-          { icon: "📅", value: upcomingEvents.length, label: "אירועים קרובים" },
-          { icon: "✅", value: pastEvents.length,     label: "אירועים שהושלמו" },
-          { icon: "📆", value: todayEvents.length,    label: "אירועים היום" },
+          { icon: "📩", value: requests.length,      label: "בקשות ממתינות",  to: "/photographer/requests" },
+          { icon: "📅", value: upcomingEvents.length, label: "אירועים קרובים",  to: "/photographer/events" },
+          { icon: "✅", value: pastEvents.length,     label: "אירועים שהושלמו", to: "/photographer/events" },
+          { icon: "📆", value: todayEvents.length,    label: "אירועים היום",    to: "/photographer/events" },
         ].map((s, i) => (
-          <div key={i} className={styles.summaryCard}>
+          <div key={i} className={styles.summaryCard} onClick={() => navigate(s.to)} style={{ cursor: "pointer" }}>
             <div className={styles.summaryCardIcon}>{s.icon}</div>
             <div className={styles.summaryCardValue}>{s.value}</div>
             <div className={styles.summaryCardLabel}>{s.label}</div>

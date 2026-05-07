@@ -4,34 +4,6 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import styles from "./PhotographerProfile.module.css";
 
-
-const MOCK_REVIEWS = [
-  {
-    id: 1,
-    name: "דנה מ.",
-    initials: "ד",
-    date: "15.02.26",
-    stars: 5,
-    text: "צלם מדהים! מקצועי, אדיב ותוצאות עוצרות נשימה. ממש המתין לרגע הנכון.",
-  },
-  {
-    id: 2,
-    name: "רון כ.",
-    initials: "ר",
-    date: "10.01.26",
-    stars: 5,
-    text: "שירות מצויין מתחילה ועד סוף. התמונות יצאו פנטסטיות לחתונה שלנו.",
-  },
-  {
-    id: 3,
-    name: "ליאת ב.",
-    initials: "ל",
-    date: "20.12.25",
-    stars: 4,
-    text: "צלם טוב מאוד, הגיע בזמן ונתן יחס אישי. ממליצה!",
-  },
-];
-
 const EVENT_TYPES = [
   "חתונה",
   "בר/בת מצווה",
@@ -46,6 +18,7 @@ export function PhotographerProfile() {
   const navigate = useNavigate();
   const [photographer, setPhotographer] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [reviews, setReviews] = useState([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [sent, setSent] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -63,10 +36,17 @@ export function PhotographerProfile() {
       .then((data) => setPhotographer(data))
       .catch((err) => console.error("Failed to load photographer:", err))
       .finally(() => setLoading(false));
+
+    fetch(`http://localhost:5000/api/events/ratings/${id}`)
+      .then((r) => r.json())
+      .then((data) => setReviews(data.ratings || []))
+      .catch(() => {});
   }, [id]);
 
-  if (loading) return <div style={{ padding: 40, color: "white" }}>טוען...</div>;
-  if (!photographer) return <div style={{ padding: 40, color: "white" }}>צלם לא נמצא</div>;
+  if (loading)
+    return <div style={{ padding: 40, color: "white" }}>טוען...</div>;
+  if (!photographer)
+    return <div style={{ padding: 40, color: "white" }}>צלם לא נמצא</div>;
 
   const services = [
     photographer.service1Name,
@@ -92,7 +72,9 @@ export function PhotographerProfile() {
     age: calcAge(photographer.dateOfBirth),
     services,
     emoji: "📸",
-    photoUrl: photographer.profile_pic ? `http://localhost:5000${photographer.profile_pic}` : null,
+    photoUrl: photographer.profile_pic
+      ? `http://localhost:5000${photographer.profile_pic}`
+      : null,
   };
 
   const handleSendProposal = async () => {
@@ -135,11 +117,15 @@ export function PhotographerProfile() {
 
       {/* Hero */}
       <div className={styles.hero}>
-        <div className={styles.heroBanner}>{p.emoji}</div>
+        <div className={styles.heroBanner}></div>
         <div className={styles.heroBody}>
           <div className={styles.heroAvatar}>
             {p.photoUrl ? (
-              <img src={p.photoUrl} alt={p.name} className={styles.heroAvatarImg} />
+              <img
+                src={p.photoUrl}
+                alt={p.name}
+                className={styles.heroAvatarImg}
+              />
             ) : (
               p.emoji
             )}
@@ -170,42 +156,42 @@ export function PhotographerProfile() {
       <div className={styles.contentGrid}>
         {/* Left column */}
         <div>
-          <div className={styles.sectionCard}>
-            <div className={styles.sectionTitle}>📖 אודות</div>
-            <p className={styles.bio}>{p.bio}</p>
-          </div>
-
           {p.services.length > 0 && (
             <div className={styles.sectionCard}>
               <div className={styles.sectionTitle}>🎨 שירותים</div>
               <div className={styles.specialties}>
                 {p.services.map((s) => (
-                  <span key={s} className={styles.specialtyTag}>{s}</span>
+                  <span key={s} className={styles.specialtyTag}>
+                    {s}
+                  </span>
                 ))}
               </div>
             </div>
           )}
 
-
           <div className={styles.sectionCard}>
             <div className={styles.sectionTitle}>⭐ ביקורות</div>
-            <div className={styles.reviews}>
-              {MOCK_REVIEWS.map((r) => (
-                <div key={r.id} className={styles.reviewCard}>
-                  <div className={styles.reviewHeader}>
-                    <div className={styles.reviewAvatar}>{r.initials}</div>
-                    <div>
-                      <div className={styles.reviewName}>{r.name}</div>
-                      <div className={styles.reviewStars}>
-                        {"⭐".repeat(r.stars)}
+            {reviews.length === 0 ? (
+              <div className={styles.noReviews}>אין ביקורות עדיין</div>
+            ) : (
+              <div className={styles.reviews}>
+                {reviews.map((r, i) => {
+                  const d = new Date(r.date);
+                  const dateStr = `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
+                  return (
+                    <div key={i} className={styles.reviewItem}>
+                      <div className={styles.reviewerName}>
+                        {r.reviewerName}
                       </div>
+                      <div className={styles.reviewStars}>
+                        {"⭐".repeat(r.customer_rating)}
+                      </div>
+                      <div className={styles.reviewMeta}>{dateStr}</div>
                     </div>
-                    <div className={styles.reviewDate}>{r.date}</div>
-                  </div>
-                  <div className={styles.reviewText}>{r.text}</div>
-                </div>
-              ))}
-            </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
 
@@ -218,7 +204,8 @@ export function PhotographerProfile() {
                 {
                   icon: "⭐",
                   label: "דירוג ממוצע",
-                  value: p.rating !== null ? `${p.rating} / 5` : "אין דירוג עדיין",
+                  value:
+                    p.rating !== null ? `${p.rating} / 5` : "אין דירוג עדיין",
                 },
                 {
                   icon: "📸",
@@ -227,7 +214,9 @@ export function PhotographerProfile() {
                 },
               ].map((s, i) => (
                 <div key={i} className={styles.statRow}>
-                  <span className={styles.statLabel}>{s.icon} {s.label}</span>
+                  <span className={styles.statLabel}>
+                    {s.icon} {s.label}
+                  </span>
                   <span className={styles.statValue}>{s.value}</span>
                 </div>
               ))}
@@ -244,7 +233,12 @@ export function PhotographerProfile() {
             setModalOpen(false);
             setSent(false);
             setProposalError("");
-            setProposal({ eventType: "", date: "", location: "", description: "" });
+            setProposal({
+              eventType: "",
+              date: "",
+              location: "",
+              description: "",
+            });
           }}
         >
           <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
@@ -254,7 +248,12 @@ export function PhotographerProfile() {
                 setModalOpen(false);
                 setSent(false);
                 setProposalError("");
-                setProposal({ eventType: "", date: "", location: "", description: "" });
+                setProposal({
+                  eventType: "",
+                  date: "",
+                  location: "",
+                  description: "",
+                });
               }}
             >
               ×
@@ -334,7 +333,9 @@ export function PhotographerProfile() {
                 </div>
 
                 {proposalError && (
-                  <p style={{ color: "#f87171", fontSize: 13, marginBottom: 8 }}>
+                  <p
+                    style={{ color: "#f87171", fontSize: 13, marginBottom: 8 }}
+                  >
                     {proposalError}
                   </p>
                 )}
