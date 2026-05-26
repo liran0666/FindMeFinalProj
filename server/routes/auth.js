@@ -4,8 +4,12 @@ import bcrypt from "bcryptjs";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
+import crypto from "crypto";
+import nodemailer from "nodemailer";
 import { fileURLToPath } from "url";
 import getDB from "../db.js";
+
+
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -36,7 +40,7 @@ const upload = multer({
 
 // ─── REGISTER ────────────────────────────────────────────────────────────────
 router.post("/register", upload.single("profile_pic"), async (req, res) => {
-  const { username, email, password, userType, dateOfBirth, city, service1, service2, service3 } = req.body;
+  const { username, email,phone, password, userType, dateOfBirth, city, service1, service2, service3 } = req.body;
 
   if (!username || !email || !password) {
     return res.status(400).json({ message: "username, email and password are required." });
@@ -58,16 +62,17 @@ router.post("/register", upload.single("profile_pic"), async (req, res) => {
     const s1 = userType === "photographer" ? (service1 || 0) : 0;
     const s2 = userType === "photographer" ? (service2 || 0) : 0;
     const s3 = userType === "photographer" ? (service3 || 0) : 0;
-    const profilePic = req.file ? `/uploads/${req.file.filename}` : null;
+    const profilePic = req.file ? `/uploads/${req.file.filename}`: `/uploads/generic.png`;
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const [result] = await db.query(
-      `INSERT INTO users (userType, email, userName, password, dateOfBirth, city, rating, service1, service2, service3, profile_pic)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO users (userType, email, phone, userName, password, dateOfBirth, city, rating, service1, service2, service3, profile_pic)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         userType || "user",
         email,
+        phone,
         username,
         hashedPassword,
         dateOfBirth || null,
@@ -87,7 +92,7 @@ router.post("/register", upload.single("profile_pic"), async (req, res) => {
     return res.status(201).json({
       message: "User registered successfully.",
       token,
-      user: { id: result.insertId, username, email, userType: userType || "user", dateOfBirth, city, profile_pic: profilePic },
+      user: { id: result.insertId, username, email,phone, userType: userType || "user", dateOfBirth, city, profile_pic: profilePic },
     });
   } catch (err) {
     console.error("Register error:", err);
@@ -161,7 +166,7 @@ router.get("/me", async (req, res) => {
     const decoded = jwt.verify(token, JWT_SECRET);
     const db = getDB();
     const [rows] = await db.query(
-      "SELECT id, userType, email, userName, dateOfBirth, city, service1, service2, service3, profile_pic FROM users WHERE id = ?",
+      "SELECT id, userType, email, phone, userName, dateOfBirth, city, service1, service2, service3, profile_pic FROM users WHERE id = ?",
       [decoded.id],
     );
     if (rows.length === 0)
@@ -231,7 +236,7 @@ router.put("/profile", async (req, res) => {
     return res.status(401).json({ message: "Invalid or expired token." });
   }
 
-  const { username, email, city, service1, service2, service3 } = req.body;
+  const { username, email,phone, city, service1, service2, service3 } = req.body;
 
   if (!username || !email) {
     return res.status(400).json({ message: "Username and email are required." });
@@ -264,18 +269,18 @@ router.put("/profile", async (req, res) => {
       const s2 = service2 || 0;
       const s3 = service3 || 0;
       await db.query(
-        "UPDATE users SET userName = ?, email = ?, city = ?, service1 = ?, service2 = ?, service3 = ? WHERE id = ?",
-        [username, email, city || null, s1, s2, s3, decoded.id],
+        "UPDATE users SET userName = ?, email = ?, phone=?,city = ?, service1 = ?, service2 = ?, service3 = ? WHERE id = ?",
+        [username, email,phone, city || null, s1, s2, s3, decoded.id],
       );
     } else {
       await db.query(
-        "UPDATE users SET userName = ?, email = ?, city = ? WHERE id = ?",
-        [username, email, city || null, decoded.id],
+        "UPDATE users SET userName = ?, email = ?,phone=?, city = ? WHERE id = ?",
+        [username, email, phone, city || null, decoded.id],
       );
     }
 
     const [updated] = await db.query(
-      "SELECT id, userType, email, userName, dateOfBirth, city, service1, service2, service3 FROM users WHERE id = ?",
+      "SELECT id, userType, email,phone, userName, dateOfBirth, city, service1, service2, service3 FROM users WHERE id = ?",
       [decoded.id],
     );
     const u = updated[0];
@@ -345,6 +350,56 @@ router.get("/photographers/:id", async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error" });
+  }
+});
+
+
+
+
+// ─── RESET PASSWORD ───────────────────────────────────────────────────────────
+router.post("/reset-password", async (req, res) => {
+  const { email } = req.body;
+  if (!email) return res.status(400).json({ message: "Email is required." });
+
+  try {
+    const db = getDB();
+    const [rows] = await db.query("SELECT id FROM users WHERE email = ?", [email]);
+
+    // Always respond the same way so attackers can't enumerate emails
+    if (rows.length === 0) return res.json({ message: "ok" });
+
+    const tempPassword = crypto.randomBytes(5).toString("hex"); // e.g. "a3f9b2c1d0"
+    const hashed = await bcrypt.hash(tempPassword, 10);
+    await db.query("UPDATE users SET password = ? WHERE email = ?", [hashed, email]);
+
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+      },
+    });
+
+    await transporter.sendMail({
+      from: `"FindMe" <${process.env.SMTP_USER}>`,
+      to: email,
+      subject: "איפוס סיסמה - FindMe",
+      html: `
+        <div dir="rtl" style="font-family:Arial,sans-serif;max-width:480px;margin:auto">
+          <h2 style="color:#1565c0">איפוס סיסמה</h2>
+          <p>קיבלנו בקשה לאיפוס הסיסמה שלך.</p>
+          <p>הסיסמה הזמנית שלך היא:</p>
+          <p style="font-size:22px;font-weight:bold;letter-spacing:4px;color:#1565c0">${tempPassword}</p>
+          <p>היכנס עם סיסמה זו ושנה אותה מיד בהגדרות החשבון.</p>
+          <p style="color:#888;font-size:12px">אם לא ביקשת איפוס, התעלם ממייל זה.</p>
+        </div>
+      `,
+    });
+
+    return res.json({ message: "ok" });
+  } catch (err) {
+    console.error("Reset password error:", err);
+    return res.status(500).json({ message: "Server error." });
   }
 });
 

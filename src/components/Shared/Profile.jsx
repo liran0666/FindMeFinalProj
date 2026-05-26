@@ -14,6 +14,7 @@ export function ProfilePage({ user, setUser, isPhotographer: isPhotographerProp 
   const [form, setForm] = useState({
     username: user?.username || user?.userName || "",
     email: user?.email || "",
+    phone:user?.phone||"",
     city: user?.city || "",
     service1: user?.service1 ?? 0,
     service2: user?.service2 ?? 0,
@@ -45,6 +46,7 @@ export function ProfilePage({ user, setUser, isPhotographer: isPhotographerProp 
     if (!form.email.trim()) errs.email = 'דוא"ל לא יכול להיות ריק.';
     else if (!emailRegex.test(form.email.trim()))
       errs.email = 'כתובת דוא"ל אינה תקינה.';
+  else if(!form.phone.trim()||form.phone.length<10||!form.phone.startsWith("05")) errs.phone="טלפון חייב להיות תקין"
     return errs;
   };
 
@@ -63,6 +65,7 @@ export function ProfilePage({ user, setUser, isPhotographer: isPhotographerProp 
         username: form.username.trim(),
         email: form.email.trim(),
         city: form.city.trim(),
+        phone:form.phone.trim()
       };
       if (isPhotographer) {
         body.service1 = Number(form.service1);
@@ -98,6 +101,7 @@ export function ProfilePage({ user, setUser, isPhotographer: isPhotographerProp 
     setForm({
       username: user?.username || user?.userName || "",
       email: user?.email || "",
+      phone:user?.phone||"",
       city: user?.city || "",
       service1: user?.service1 ?? 0,
       service2: user?.service2 ?? 0,
@@ -173,7 +177,11 @@ export function ProfilePage({ user, setUser, isPhotographer: isPhotographerProp 
               disabled={picUploading}
             >
               {photoUrl ? (
-                <img src={photoUrl} alt="תמונת פרופיל" className={styles.profileAvatarImg} />
+                <img
+                  src={photoUrl}
+                  alt="תמונת פרופיל"
+                  className={styles.profileAvatarImg}
+                />
               ) : (
                 <span className={styles.profileAvatarEmoji}>{emoji}</span>
               )}
@@ -233,10 +241,19 @@ export function ProfilePage({ user, setUser, isPhotographer: isPhotographerProp 
             <input
               className={styles.formInput}
               value={form.city}
+              onChange={(e) => setForm((f) => ({ ...f, city: e.target.value }))}
+            />
+          </div>
+          <div className={styles.formGroup}>
+            <label className={styles.formLabel}>טלפון</label>
+            <input
+              className={styles.formInput}
+              value={form.phone}
               onChange={(e) =>
-                setForm((f) => ({ ...f, city: e.target.value }))
+                setForm((f) => ({ ...f, phone: e.target.value }))
               }
             />
+            <span className={styles.errorMsg}>{errors.phone}</span>
           </div>
         </div>
       </div>

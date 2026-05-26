@@ -63,14 +63,28 @@ export function LoginPage({ onLogin }) {
 
         {error && <p className={styles.errorMsg}>{error}</p>}
 
-        <button className={styles.authSubmitBtn} onClick={handleSubmit} disabled={busy}>
+        <button
+          className={styles.authSubmitBtn}
+          onClick={handleSubmit}
+          disabled={busy}
+        >
           {busy ? "מתחבר..." : "התחבר"}
         </button>
 
         <p className={styles.authSwitchText}>
           אין לך חשבון?{" "}
-          <span className={styles.authSwitchLink} onClick={() => navigate("/register")}>
+          <span
+            className={styles.authSwitchLink}
+            onClick={() => navigate("/register")}
+          >
             הירשם עכשיו
+          </span>
+          <br></br>
+          <span
+            className={styles.authSwitchLink}
+            onClick={() => navigate("/reset-password")}
+          >
+           שכחת סיסמא?
           </span>
         </p>
       </div>
@@ -87,6 +101,7 @@ export function RegisterPage({ onRegister }) {
   const [form, setForm] = useState({
     username: "",
     email: "",
+    phone:"",
     password: "",
     confirmPassword: "",
     dateOfBirth: "",
@@ -139,7 +154,7 @@ export function RegisterPage({ onRegister }) {
   };
 
   const handleSubmit = async () => {
-    if (!form.username || !form.email || !form.password) {
+    if (!form.username || !form.email || !form.password||!form.phone) {
       setError("אנא מלא את כל השדות החובה");
       return;
     }
@@ -151,6 +166,11 @@ export function RegisterPage({ onRegister }) {
       setError("הסיסמאות אינן תואמות");
       return;
     }
+    if(form.phone.length<10||!form.phone.startsWith("05"))
+    {
+      setError("מספר טלפון לא תקין")
+      return;
+    }
     if (role === "photographer" && selectedServices.length === 0) {
       setError("צלם חייב לבחור לפחות שירות אחד");
       return;
@@ -160,7 +180,9 @@ export function RegisterPage({ onRegister }) {
     try {
       const { confirmPassword, ...payload } = form;
       const fd = new FormData();
-      Object.entries({ ...payload, userType: role,
+      Object.entries({
+        ...payload,
+        userType: role,
         service1: selectedServices[0] || 0,
         service2: selectedServices[1] || 0,
         service3: selectedServices[2] || 0,
@@ -187,13 +209,26 @@ export function RegisterPage({ onRegister }) {
           {/* Role selector */}
           <div className={styles.roleSelector}>
             {[
-              { id: "customer",     icon: "🙋", label: "לקוח",  desc: "מחפש צלם לאירוע" },
-              { id: "photographer", icon: "📷", label: "צלם",   desc: "מציע שירותי צילום" },
+              {
+                id: "customer",
+                icon: "🙋",
+                label: "לקוח",
+                desc: "מחפש צלם לאירוע",
+              },
+              {
+                id: "photographer",
+                icon: "📷",
+                label: "צלם",
+                desc: "מציע שירותי צילום",
+              },
             ].map((r) => (
               <div
                 key={r.id}
                 className={`${styles.roleCard} ${role === r.id ? styles.active : ""}`}
-                onClick={() => { setRole(r.id); setSelectedServices([]); }}
+                onClick={() => {
+                  setRole(r.id);
+                  setSelectedServices([]);
+                }}
               >
                 <span className={styles.roleCardIcon}>{r.icon}</span>
                 <span className={styles.roleCardLabel}>{r.label}</span>
@@ -205,14 +240,25 @@ export function RegisterPage({ onRegister }) {
           {/* Profile picture */}
           <div className={styles.sectionDivider}>תמונת פרופיל</div>
           <div className={styles.avatarPickerRow}>
-            <label className={styles.avatarPickerLabel} htmlFor="profile_pic_input">
+            <label
+              className={styles.avatarPickerLabel}
+              htmlFor="profile_pic_input"
+            >
               {profilePicPreview ? (
-                <img src={profilePicPreview} alt="תצוגה מקדימה" className={styles.avatarPreview} />
+                <img
+                  src={profilePicPreview}
+                  alt="תצוגה מקדימה"
+                  className={styles.avatarPreview}
+                />
               ) : (
                 <div className={styles.avatarPickerPlaceholder}>
                   <span className={styles.avatarPickerIcon}>📷</span>
-                  <span className={styles.avatarPickerHint}>לחץ להעלאת תמונה</span>
-                  <span className={styles.avatarPickerSub}>JPG / PNG / WEBP עד 5MB</span>
+                  <span className={styles.avatarPickerHint}>
+                    לחץ להעלאת תמונה
+                  </span>
+                  <span className={styles.avatarPickerSub}>
+                    JPG / PNG / WEBP עד 5MB
+                  </span>
                 </div>
               )}
             </label>
@@ -227,7 +273,10 @@ export function RegisterPage({ onRegister }) {
               <button
                 type="button"
                 className={styles.avatarRemoveBtn}
-                onClick={() => { setProfilePicFile(null); setProfilePicPreview(null); }}
+                onClick={() => {
+                  setProfilePicFile(null);
+                  setProfilePicPreview(null);
+                }}
               >
                 הסר תמונה
               </button>
@@ -263,6 +312,19 @@ export function RegisterPage({ onRegister }) {
             />
           </div>
 
+          <div className={styles.formGroup}>
+            <label className={styles.formLabel}>
+              טלפון <span className={styles.required}>*</span>
+            </label>
+            <input
+              className={styles.formInput}
+              type="text"
+              placeholder="הכנס מספר טלפון"
+              value={form.phone}
+              onChange={set("phone")}
+            />
+          </div>
+
           <div className={styles.formRow}>
             <div className={styles.formGroup}>
               <label className={styles.formLabel}>
@@ -282,9 +344,10 @@ export function RegisterPage({ onRegister }) {
                 className={`${styles.formInput} ${
                   form.confirmPassword && form.confirmPassword !== form.password
                     ? styles.formInputError
-                    : form.confirmPassword && form.confirmPassword === form.password
-                    ? styles.formInputSuccess
-                    : ""
+                    : form.confirmPassword &&
+                        form.confirmPassword === form.password
+                      ? styles.formInputSuccess
+                      : ""
                 }`}
                 type="password"
                 placeholder="••••••••"
@@ -323,7 +386,8 @@ export function RegisterPage({ onRegister }) {
           {role === "photographer" && (
             <>
               <div className={styles.sectionDivider}>
-                שירותים <span className={styles.sectionDividerNote}>(בחר עד 3)</span>
+                שירותים{" "}
+                <span className={styles.sectionDividerNote}>(בחר עד 3)</span>
               </div>
               <div className={styles.servicesGrid}>
                 {services.map((s) => {
@@ -351,17 +415,103 @@ export function RegisterPage({ onRegister }) {
 
           {error && <p className={styles.errorMsg}>{error}</p>}
 
-          <button className={styles.authSubmitBtn} onClick={handleSubmit} disabled={busy}>
+          <button
+            className={styles.authSubmitBtn}
+            onClick={handleSubmit}
+            disabled={busy}
+          >
             {busy ? "יוצר חשבון..." : "יצירת חשבון"}
           </button>
 
           <p className={styles.authSwitchText}>
             יש לך חשבון?{" "}
-            <span className={styles.authSwitchLink} onClick={() => navigate("/login")}>
+            <span
+              className={styles.authSwitchLink}
+              onClick={() => navigate("/login")}
+            >
               התחבר
             </span>
           </p>
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── RESET PASSWORD ───────────────────────────────────────────────────────────
+export function ResetPasswordPage() {
+  const navigate = useNavigate();
+  const [email, setEmail] = useState("");
+  const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleReset = async () => {
+    if (!email) {
+      setError("אנא הכנס כתובת אימייל");
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setError("כתובת האימייל אינה תקינה");
+      return;
+    }
+    setError("");
+    const res = await fetch("http://localhost:5000/api/auth/reset-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+    if (!res.ok) {
+      setError("שגיאה בשרת, נסה שוב מאוחר יותר");
+      return;
+    }
+    setSubmitted(true);
+  };
+
+  return (
+    <div className={styles.authWrapper}>
+      <DecorativePanel />
+      <div className={styles.authFormWrapper}>
+        <div className={styles.authFormHeader}>
+          <h1 className={styles.authFormTitle}>איפוס סיסמה</h1>
+          <p className={styles.authFormSubtitle}>
+            הכנס את האימייל שלך ונשלח לך הוראות לאיפוס הסיסמה
+          </p>
+        </div>
+
+        {submitted ? (
+          <div className={styles.successMsg}>
+            <p>אם האימייל קיים במערכת, ישלח אליך מייל עם הוראות לאיפוס הסיסמה.</p>
+          </div>
+        ) : (
+          <>
+            <div className={styles.formGroup}>
+              <label className={styles.formLabel}>אימייל</label>
+              <input
+                className={styles.formInput}
+                type="email"
+                placeholder="הכנס מייל לאיפוס"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleReset()}
+              />
+            </div>
+
+            {error && <p className={styles.errorMsg}>{error}</p>}
+
+            <button className={styles.authSubmitBtn} onClick={handleReset}>
+              אפס סיסמה
+            </button>
+          </>
+        )}
+
+        <p className={styles.authSwitchText}>
+          <span
+            className={styles.authSwitchLink}
+            onClick={() => navigate("/login")}
+          >
+            חזרה להתחברות
+          </span>
+        </p>
       </div>
     </div>
   );
@@ -374,10 +524,7 @@ function DecorativePanel() {
       <div className={styles.authPanelGrid} />
       <div className={styles.authPanelContent}>
         <div className={styles.authPanelLogo}>
-          <img
-            src="public\findme.png"
-            alt="findMe logo" width={350}
-          ></img>
+          <img src="public\findme.png" alt="findMe logo" width={350}></img>
         </div>
         <p className={styles.authPanelTagline}> תמונה שווה אלף מילים</p>
         <div className={styles.authPanelFeatures}>

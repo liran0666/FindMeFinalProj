@@ -6,7 +6,7 @@ import {
 } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 
-import { LoginPage, RegisterPage } from "../Auth/Auth";
+import { LoginPage, RegisterPage, ResetPasswordPage } from "../Auth/Auth";
 import { Navbar } from "../Layout/Navbar.jsx";
 
 import CustomerRoutes from "../../Routes/CustomerRoutes.jsx";
@@ -98,6 +98,10 @@ export default function App() {
               <Navigate to="/" replace />
             )
           }
+        />
+        <Route
+          path="/reset-password"
+          element={!user ? <ResetPasswordPage /> : <Navigate to="/" replace />}
         />
         <Route
           path="/customer/*"
