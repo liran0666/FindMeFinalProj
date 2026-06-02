@@ -9,17 +9,19 @@ export function Navbar({ user, onLogout }) {
   const drawerRef = useRef(null);
 
   const isActive = (path) => {
-    // Exact match for root dashboard paths to avoid highlighting on sub-routes
+    //היילייט של שורה אקטיבית
     if (path === "/photographer" || path === "/customer") {
       return location.pathname === path;
     }
     return location.pathname.startsWith(path);
   };
 
-  // Close drawer on route change
-  useEffect(() => { setOpen(false); }, [location.pathname]);
+  // סגור תפריט בלחיצת שורה
+  useEffect(() => {
+    setOpen(false);
+  }, [location.pathname]);
 
-  // Close on outside click
+  // סגירת תפריט בלחיצה בחוץ
   useEffect(() => {
     if (!open) return;
     const handler = (e) => {
@@ -31,37 +33,34 @@ export function Navbar({ user, onLogout }) {
     return () => document.removeEventListener("mousedown", handler);
   }, [open]);
 
-  // Close on Escape
-  useEffect(() => {
-    const handler = (e) => { if (e.key === "Escape") setOpen(false); };
-    document.addEventListener("keydown", handler);
-    return () => document.removeEventListener("keydown", handler);
-  }, []);
-
-  const go = (path) => { navigate(path); setOpen(false); };
+  const go = (path) => {
+    navigate(path);
+    setOpen(false);
+  };
 
   const customerLinks = [
-    { label: "ראשי",          icon: "🏠", path: "/customer"         },
-    { label: "חיפוש צלמים",  icon: "🔍", path: "/customer/explore" },
-    { label: "האירועים שלי", icon: "📅", path: "/customer/events"  },
-    { label: "פרופיל",        icon: "👤", path: "/customer/profile" },
+    { label: "ראשי", icon: "🏠", path: "/customer" },
+    { label: "חיפוש צלמים", icon: "🔍", path: "/customer/explore" },
+    { label: "האירועים שלי", icon: "📅", path: "/customer/events" },
+    { label: "פרופיל", icon: "👤", path: "/customer/profile" },
   ];
 
   const photographerLinks = [
-    { label: "לוח בקרה",    icon: "🏠", path: "/photographer"           },
-    { label: "בקשות",       icon: "📩", path: "/photographer/requests"  },
-    { label: "אירועים",     icon: "📅", path: "/photographer/events"    },
-    { label: "קבלות",       icon: "🧾", path: "/photographer/receipt"   },
-    { label: "סטטיסטיקות",  icon: "📊", path: "/photographer/stats"     },
-    { label: "פרופיל",      icon: "👤", path: "/photographer/profile"   },
+    { label: "לוח בקרה", icon: "🏠", path: "/photographer" },
+    { label: "בקשות", icon: "📩", path: "/photographer/requests" },
+    { label: "אירועים", icon: "📅", path: "/photographer/events" },
+    { label: "קבלות", icon: "🧾", path: "/photographer/receipt" },
+    { label: "סטטיסטיקות", icon: "📊", path: "/photographer/stats" },
+    { label: "פרופיל", icon: "👤", path: "/photographer/profile" },
   ];
 
-  const links = user.userType === "photographer" ? photographerLinks : customerLinks;
+  const links =
+    user.userType === "photographer" ? photographerLinks : customerLinks;
 
   return (
     <>
       <div className={styles.navbar}>
-        {/* Hamburger button */}
+        {/* כפתור תפריט */}
         <button
           className={`${styles.hamburger} ${open ? styles.hamburgerOpen : ""}`}
           onClick={() => setOpen((o) => !o)}
@@ -72,36 +71,49 @@ export function Navbar({ user, onLogout }) {
           <span />
         </button>
 
-        {/* Logo */}
-        <div className={styles.logo} onClick={() => navigate(`/${user.userType}`)}>
-          <img src="public/findme.png" alt="findmeLogo" width={100}></img>
+        <div
+          className={styles.logo}
+          onClick={() => navigate(`/${user.userType}`)}
+        >
+          <img src="/findme.png" alt="findmeLogo" width={100}></img>
         </div>
       </div>
 
-      {/* Overlay */}
       {open && <div className={styles.overlay} />}
 
-      {/* Drawer */}
-      <div ref={drawerRef} className={`${styles.drawer} ${open ? styles.drawerOpen : ""}`}>
-        {/* Drawer header */}
+      <div
+        ref={drawerRef}
+        className={`${styles.drawer} ${open ? styles.drawerOpen : ""}`}
+      >
         <div className={styles.drawerHeader}>
           <div className={styles.drawerUser}>
             <div className={styles.drawerAvatar}>
-              {user.profile_pic
-                ? <img src={`http://localhost:5000${user.profile_pic}`} alt="" className={styles.drawerAvatarImg} />
-                : (user.userType === "photographer" ? "📸" : "👤")}
+              {user.profile_pic ? (
+                <img
+                  src={`http://localhost:5000${user.profile_pic}`}
+                  alt=""
+                  className={styles.drawerAvatarImg}
+                />
+              ) : user.userType === "photographer" ? (
+                "📸"
+              ) : (
+                "👤"
+              )}
             </div>
             <div>
-              <div className={styles.drawerUsername}>{user.username || user.userName}</div>
+              <div className={styles.drawerUsername}>
+                {user.username || user.userName}
+              </div>
               <div className={styles.drawerRole}>
                 {user.userType === "photographer" ? "צלם" : "לקוח"}
               </div>
             </div>
           </div>
-          <button className={styles.drawerClose} onClick={() => setOpen(false)}>✕</button>
+          <button className={styles.drawerClose} onClick={() => setOpen(false)}>
+            ✕
+          </button>
         </div>
 
-        {/* Nav links */}
         <nav className={styles.drawerNav}>
           {links.map((link) => (
             <button
@@ -115,9 +127,14 @@ export function Navbar({ user, onLogout }) {
           ))}
         </nav>
 
-        {/* Logout */}
         <div className={styles.drawerFooter}>
-          <button className={styles.drawerLogout} onClick={() => { onLogout(); setOpen(false); }}>
+          <button
+            className={styles.drawerLogout}
+            onClick={() => {
+              onLogout();
+              setOpen(false);
+            }}
+          >
             🚪 התנתק
           </button>
         </div>

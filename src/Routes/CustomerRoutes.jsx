@@ -5,7 +5,7 @@ import { ProfilePage } from "../components/Shared/Profile.jsx";
 import CustomerEventsPage from "../components/Customer/CustomerEventsPage.jsx";
 import CustomerDashboard from "../components/Customer/CustomerDashboard.jsx";
 import { GalleryPage } from "../components/Photographer/Gallery.jsx";
-
+// הפרדת קומפוננטות של לקוח
 export default function CustomerRoutes({ user, setUser }) {
   return (
     <Routes>

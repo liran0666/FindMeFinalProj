@@ -1,4 +1,4 @@
-// PhotographerProfile.jsx - View photographer + send proposal
+// PhotographerProfile.jsx - פרופיל של צלם בתוך רשימת צלמים והצעת אירוע
 
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
@@ -82,6 +82,10 @@ export function PhotographerProfile() {
       setProposalError("אנא מלא את כל השדות הנדרשים");
       return;
     }
+    if (new Date(proposal.date) <= new Date()) {
+      setProposalError("תאריך חייב להיות מאוחר מהיום");
+      return;
+    }
     setProposalError("");
     setSubmitting(true);
     try {
@@ -115,7 +119,7 @@ export function PhotographerProfile() {
         ← חזרה לחיפוש
       </button>
 
-      {/* Hero */}
+      
       <div className={styles.hero}>
         <div className={styles.heroBanner}></div>
         <div className={styles.heroBody}>
@@ -154,7 +158,7 @@ export function PhotographerProfile() {
       </div>
 
       <div className={styles.contentGrid}>
-        {/* Left column */}
+        
         <div>
           {p.services.length > 0 && (
             <div className={styles.sectionCard}>
@@ -195,7 +199,7 @@ export function PhotographerProfile() {
           </div>
         </div>
 
-        {/* Right sidebar */}
+        
         <div>
           <div className={styles.sectionCard}>
             <div className={styles.sectionTitle}>📊 נתונים</div>
@@ -225,7 +229,7 @@ export function PhotographerProfile() {
         </div>
       </div>
 
-      {/* Proposal Modal */}
+      
       {modalOpen && (
         <div
           className={styles.modalOverlay}

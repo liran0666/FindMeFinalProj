@@ -1,4 +1,4 @@
-// PhotographerRequests.jsx — full page for pending requests
+// PhotographerRequests.jsx — דף אירועים ממתינים לאישור
 
 import { useState, useEffect } from "react";
 import styles from "./PhotographerDashboard.module.css";
@@ -89,7 +89,7 @@ export function PhotographerRequests() {
     </div>
   );
 }
-
+//בקשה
 function RequestCard({ request: r, onAction, onDetails }) {
   const [busy, setBusy] = useState(false);
   const d = new Date(r.date);
@@ -120,7 +120,7 @@ function RequestCard({ request: r, onAction, onDetails }) {
     </div>
   );
 }
-
+//פרטים של בקשה
 function RequestDetailsModal({ event: ev, onClose, onAction }) {
   const [busy, setBusy] = useState(false);
   const d = new Date(ev.date);

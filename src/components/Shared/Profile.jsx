@@ -1,4 +1,4 @@
-// Profile.jsx - Edit profile (both user types)
+// Profile.jsx - עריכת פרופיל לשני הצדדים
 
 import { useState, useEffect, useRef } from "react";
 import styles from "./Profile.module.css";
@@ -7,14 +7,18 @@ const AUTH_BASE_URL = "http://localhost:5000/api/auth";
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-export function ProfilePage({ user, setUser, isPhotographer: isPhotographerProp }) {
+export function ProfilePage({
+  user,
+  setUser,
+  isPhotographer: isPhotographerProp,
+}) {
   const isPhotographer =
     isPhotographerProp ?? user?.userType === "photographer";
 
   const [form, setForm] = useState({
     username: user?.username || user?.userName || "",
     email: user?.email || "",
-    phone:user?.phone||"",
+    phone: user?.phone || "",
     city: user?.city || "",
     service1: user?.service1 ?? 0,
     service2: user?.service2 ?? 0,
@@ -24,12 +28,12 @@ export function ProfilePage({ user, setUser, isPhotographer: isPhotographerProp 
   const [errors, setErrors] = useState({});
   const [services, setServices] = useState([]);
   const [saving, setSaving] = useState(false);
-  const [toast, setToast] = useState(null); // { type: 'success'|'error', message }
-  const [picPreview, setPicPreview] = useState(null); // local preview while uploading
+  const [toast, setToast] = useState(null);
+  const [picPreview, setPicPreview] = useState(null);
   const [picUploading, setPicUploading] = useState(false);
   const picInputRef = useRef(null);
 
-  // Fetch services list for photographer dropdowns
+  // מביא רשימת שירותים
   useEffect(() => {
     if (!isPhotographer) return;
     fetch(`${AUTH_BASE_URL}/services`)
@@ -46,7 +50,13 @@ export function ProfilePage({ user, setUser, isPhotographer: isPhotographerProp 
     if (!form.email.trim()) errs.email = 'דוא"ל לא יכול להיות ריק.';
     else if (!emailRegex.test(form.email.trim()))
       errs.email = 'כתובת דוא"ל אינה תקינה.';
-  else if(!form.phone.trim()||form.phone.length<10||!form.phone.startsWith("05")) errs.phone="טלפון חייב להיות תקין"
+    else if (
+      !form.phone.trim() ||
+      form.phone.length < 10 ||
+      !form.phone.startsWith("05") ||
+      isNaN(form.phone)
+    )
+      errs.phone = "טלפון חייב להיות תקין";
     return errs;
   };
 
@@ -65,7 +75,7 @@ export function ProfilePage({ user, setUser, isPhotographer: isPhotographerProp 
         username: form.username.trim(),
         email: form.email.trim(),
         city: form.city.trim(),
-        phone:form.phone.trim()
+        phone: form.phone.trim(),
       };
       if (isPhotographer) {
         body.service1 = Number(form.service1);
@@ -101,7 +111,7 @@ export function ProfilePage({ user, setUser, isPhotographer: isPhotographerProp 
     setForm({
       username: user?.username || user?.userName || "",
       email: user?.email || "",
-      phone:user?.phone||"",
+      phone: user?.phone || "",
       city: user?.city || "",
       service1: user?.service1 ?? 0,
       service2: user?.service2 ?? 0,
@@ -109,7 +119,7 @@ export function ProfilePage({ user, setUser, isPhotographer: isPhotographerProp 
     });
     setErrors({});
   };
-
+  //שינוי תמונת פרופיל
   const handlePicChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -124,7 +134,7 @@ export function ProfilePage({ user, setUser, isPhotographer: isPhotographerProp 
       return;
     }
 
-    // Show local preview immediately
+    //מראה תמונת פרופיל ברירת מחדל ישירות
     const localUrl = URL.createObjectURL(file);
     setPicPreview(localUrl);
     setPicUploading(true);
@@ -141,10 +151,13 @@ export function ProfilePage({ user, setUser, isPhotographer: isPhotographerProp 
       const data = await res.json();
       if (!res.ok) {
         setPicPreview(null);
-        setToast({ type: "error", message: data.message || "שגיאה בהעלאת התמונה." });
+        setToast({
+          type: "error",
+          message: data.message || "שגיאה בהעלאת התמונה.",
+        });
       } else {
         if (setUser) setUser(data.user);
-        setPicPreview(null); // now served from server via user.profile_pic
+        setPicPreview(null);
         setToast({ type: "success", message: "תמונת הפרופיל עודכנה!" });
       }
     } catch {
@@ -153,19 +166,19 @@ export function ProfilePage({ user, setUser, isPhotographer: isPhotographerProp 
     } finally {
       setPicUploading(false);
       setTimeout(() => setToast(null), 3000);
-      // Reset input so selecting the same file again triggers onChange
       if (picInputRef.current) picInputRef.current.value = "";
     }
   };
 
   const emoji = user?.emoji || (isPhotographer ? "📸" : "👤");
-  const photoUrl = picPreview || (user?.profile_pic ? `http://localhost:5000${user.profile_pic}` : null);
+  const photoUrl =
+    picPreview ||
+    (user?.profile_pic ? `http://localhost:5000${user.profile_pic}` : null);
 
   return (
     <div className={styles.page}>
       <div className={styles.pageTitle}>👤 פרופיל</div>
 
-      {/* Profile hero */}
       <div className={styles.profileCard}>
         <div className={styles.profileBanner}>{emoji}</div>
         <div className={styles.profileBody}>
@@ -203,7 +216,7 @@ export function ProfilePage({ user, setUser, isPhotographer: isPhotographerProp 
         </div>
       </div>
 
-      {/* Basic info */}
+      {/*  פרטים  */}
       <div className={styles.section}>
         <div className={styles.sectionTitle}>📋 פרטים אישיים</div>
         <div className={styles.formGrid}>
@@ -258,7 +271,7 @@ export function ProfilePage({ user, setUser, isPhotographer: isPhotographerProp 
         </div>
       </div>
 
-      {/* Photographer services */}
+      {/* שירותי צלם */}
       {isPhotographer && services.length > 0 && (
         <div className={styles.section}>
           <div className={styles.sectionTitle}>📷 שירותים</div>

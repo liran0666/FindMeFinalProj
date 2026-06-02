@@ -1,20 +1,20 @@
-// PhotographerReceipt.jsx — receipt generator with tax calculation and PDF export
+// PhotographerReceipt.jsx — ייצור קבלה
 
 import { useState, useEffect, useRef } from "react";
 import styles from "./PhotographerReceipt.module.css";
 
 const API = "http://localhost:5000/api/events";
 const TAX_RATE = 0.18;
-
+//פורמט של תאריך
 function formatDate(dateVal) {
   const d = new Date(dateVal);
   return `${String(d.getDate()).padStart(2,"0")}/${String(d.getMonth()+1).padStart(2,"0")}/${d.getFullYear()}`;
 }
-
+//פורמט של כסף (שקל)
 function formatMoney(n) {
   return "₪" + Number(n).toLocaleString("he-IL", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
-
+//חישוב של מחיר כולל מעמ
 function calcPrices(amount, includesTax) {
   const raw = parseFloat(amount) || 0;
   if (includesTax) {
@@ -46,7 +46,7 @@ export function PhotographerReceipt({ user }) {
       .finally(() => setLoading(false));
   }, []);
 
-  // Auto-fill customer name when event is selected
+  // מילוי שם של לקוח בעת בחירת אירוע
   useEffect(() => {
     const ev = events.find((e) => String(e.id) === String(selectedId));
     if (ev) setFullName(ev.customerName || "");
@@ -64,12 +64,12 @@ export function PhotographerReceipt({ user }) {
 
   return (
     <div className={styles.page}>
-      {/* ── Form (hidden on print) ── */}
+      
       <div className={styles.formPanel}>
         <div className={styles.pageTitle}>🧾 הפקת קבלה</div>
         <div className={styles.pageSubtitle}>בחר אירוע, מלא פרטים ושמור כ-PDF</div>
 
-        {/* Event selector */}
+        
         <div className={styles.formSection}>
           <div className={styles.sectionLabel}>בחר אירוע</div>
           {loading ? (
@@ -94,7 +94,7 @@ export function PhotographerReceipt({ user }) {
 
         {selectedEvent && (
           <>
-            {/* Customer name */}
+           
             <div className={styles.formSection}>
               <div className={styles.sectionLabel}>שם מלא של הלקוח</div>
               <input
@@ -105,7 +105,7 @@ export function PhotographerReceipt({ user }) {
               />
             </div>
 
-            {/* Price */}
+            
             <div className={styles.formSection}>
               <div className={styles.sectionLabel}>סכום (₪)</div>
               <input
@@ -119,7 +119,7 @@ export function PhotographerReceipt({ user }) {
               />
             </div>
 
-            {/* Tax checkbox */}
+            
             <label className={styles.taxCheckbox}>
               <input
                 type="checkbox"
@@ -129,7 +129,7 @@ export function PhotographerReceipt({ user }) {
               <span>הסכום כולל מע"מ (18%)</span>
             </label>
 
-            {/* Live breakdown */}
+            
             {parseFloat(amount) > 0 && (
               <div className={styles.breakdown}>
                 <div className={styles.breakdownRow}>
@@ -147,7 +147,7 @@ export function PhotographerReceipt({ user }) {
               </div>
             )}
 
-            {/* Print button */}
+            
             <button
               className={styles.printBtn}
               onClick={handlePrint}
@@ -159,11 +159,10 @@ export function PhotographerReceipt({ user }) {
         )}
       </div>
 
-      {/* ── Receipt (visible on screen + printed) ── */}
+      {/* עיצוב של הקבלה*/}
       {selectedEvent && canPrint && (
         <div className={styles.receiptWrapper} ref={receiptRef}>
           <div className={styles.receipt}>
-            {/* Header */}
             <div className={styles.receiptHeader}>
               <div className={styles.receiptLogo}>📸 FindMe</div>
               <div className={styles.receiptHeaderDetails}>
@@ -174,7 +173,7 @@ export function PhotographerReceipt({ user }) {
 
             <div className={styles.receiptDivider} />
 
-            {/* Parties */}
+            
             <div className={styles.receiptParties}>
               <div className={styles.receiptParty}>
                 <div className={styles.receiptPartyLabel}>מאת (צלם)</div>
@@ -189,7 +188,7 @@ export function PhotographerReceipt({ user }) {
 
             <div className={styles.receiptDivider} />
 
-            {/* Event details */}
+            
             <div className={styles.receiptSection}>
               <div className={styles.receiptSectionTitle}>פרטי האירוע</div>
               <div className={styles.receiptGrid}>
@@ -210,7 +209,7 @@ export function PhotographerReceipt({ user }) {
 
             <div className={styles.receiptDivider} />
 
-            {/* Price table */}
+            
             <div className={styles.receiptSection}>
               <div className={styles.receiptSectionTitle}>פירוט תשלום</div>
               <table className={styles.priceTable}>
@@ -239,7 +238,7 @@ export function PhotographerReceipt({ user }) {
               </table>
             </div>
 
-            {/* Footer */}
+            
             <div className={styles.receiptFooter}>
               תודה על הבחירה בשירותינו 🙏
             </div>

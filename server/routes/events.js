@@ -7,9 +7,9 @@ import { fileURLToPath } from "url";
 import getDB from "../db.js";
 
 const __filename = fileURLToPath(import.meta.url);
-const __dirname  = path.dirname(__filename);
+const __dirname = path.dirname(__filename);
 
-// ─── MULTER FOR SELFIE (temp, deleted after comparison) ──────────────────────
+// מולטר בשביל העלאת סלפי
 const selfieUpload = multer({
   storage: multer.diskStorage({
     destination: (_req, _file, cb) => {
@@ -19,7 +19,10 @@ const selfieUpload = multer({
     },
     filename: (_req, file, cb) => {
       const ext = path.extname(file.originalname).toLowerCase() || ".jpg";
-      cb(null, `selfie-${Date.now()}-${Math.random().toString(36).slice(2, 7)}${ext}`);
+      cb(
+        null,
+        `selfie-${Date.now()}-${Math.random().toString(36).slice(2, 7)}${ext}`,
+      );
     },
   }),
   limits: { fileSize: 5 * 1024 * 1024 },
@@ -29,10 +32,14 @@ const selfieUpload = multer({
   },
 });
 
-// ─── MULTER FOR EVENT PHOTOS ──────────────────────────────────────────────────
+//מולטר בשביל העלת תמונות מארוע
 const eventPhotoStorage = multer.diskStorage({
   destination: (req, _file, cb) => {
-    const dir = path.join(__dirname, "../uploads/events", String(req.params.id));
+    const dir = path.join(
+      __dirname,
+      "../uploads/events",
+      String(req.params.id),
+    );
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
     cb(null, dir);
   },
@@ -67,13 +74,13 @@ function verifyToken(req, res, next) {
   }
 }
 
-// GET /api/events/stats?year=2026 — stats for the logged-in photographer
+//קבלת סטטיסטיקות לצלם
 router.get("/stats", verifyToken, async (req, res) => {
   const year = parseInt(req.query.year) || new Date().getFullYear();
   try {
     const db = getDB();
 
-    // Monthly active events for the requested year
+    //אירועים לפי חודש
     const [monthly] = await db.query(
       `SELECT MONTH(date) AS month, COUNT(*) AS events
        FROM events
@@ -82,7 +89,7 @@ router.get("/stats", verifyToken, async (req, res) => {
       [req.user.id, year],
     );
 
-    // Event type breakdown for the requested year
+    //סוג אירוע
     const [types] = await db.query(
       `SELECT name, COUNT(*) AS count
        FROM events
@@ -92,7 +99,7 @@ router.get("/stats", verifyToken, async (req, res) => {
       [req.user.id, year],
     );
 
-    // Status totals (all years)
+    // לפי סטטוס
     const [statusTotals] = await db.query(
       `SELECT status, COUNT(*) AS count
        FROM events
@@ -101,7 +108,7 @@ router.get("/stats", verifyToken, async (req, res) => {
       [req.user.id],
     );
 
-    // Photographer rating
+    //דירוג צלם
     const [userRows] = await db.query("SELECT rating FROM users WHERE id = ?", [
       req.user.id,
     ]);
@@ -118,7 +125,7 @@ router.get("/stats", verifyToken, async (req, res) => {
   }
 });
 
-// GET /api/events/receipts — active/done events with customer details (photographer only)
+// קבלת אירועים לפי צלם לצורך הפקת קבלה
 router.get("/receipts", verifyToken, async (req, res) => {
   try {
     const db = getDB();
@@ -138,7 +145,7 @@ router.get("/receipts", verifyToken, async (req, res) => {
   }
 });
 
-// GET /api/events/photographer — all events for the logged-in photographer
+// אירועים של צלם שמחובר
 router.get("/photographer", verifyToken, async (req, res) => {
   try {
     const db = getDB();
@@ -158,7 +165,7 @@ router.get("/photographer", verifyToken, async (req, res) => {
   }
 });
 
-// GET /api/events/customer — all events for the logged-in customer
+// כל האירועים של משתמש שמחובר
 router.get("/customer", verifyToken, async (req, res) => {
   try {
     const db = getDB();
@@ -178,7 +185,7 @@ router.get("/customer", verifyToken, async (req, res) => {
   }
 });
 
-// POST /api/events — customer proposes a new event
+// הצעת אירוע חדש על ידי משתמש לצלם
 router.post("/", verifyToken, async (req, res) => {
   const { photographerId, name, date, place, notes } = req.body;
   if (!photographerId || !name || !date || !place) {
@@ -197,7 +204,7 @@ router.post("/", verifyToken, async (req, res) => {
   }
 });
 
-// GET /api/events/ratings/:photographerId — public ratings list for a photographer
+// קבלת רשימת דירוגים של צלם כולל מי השאיר אותם
 router.get("/ratings/:photographerId", async (req, res) => {
   try {
     const db = getDB();
@@ -216,7 +223,7 @@ router.get("/ratings/:photographerId", async (req, res) => {
   }
 });
 
-// POST /api/events/:id/rate — customer rates a completed event
+//דירוג אירוע שהסתיים
 router.post("/:id/rate", verifyToken, async (req, res) => {
   const rating = parseInt(req.body.rating);
   if (!rating || rating < 1 || rating > 5) {
@@ -241,7 +248,7 @@ router.post("/:id/rate", verifyToken, async (req, res) => {
       rating,
       ev.id,
     ]);
-    // Recalculate photographer's average rating
+    //חישוב ממוצע דירוג חדש לצלם
     const [avg] = await db.query(
       "SELECT AVG(customer_rating) AS avg FROM events WHERE photographer_id = ? AND customer_rating IS NOT NULL",
       [ev.photographer_id],
@@ -258,12 +265,13 @@ router.post("/:id/rate", verifyToken, async (req, res) => {
   }
 });
 
-
-// PATCH /api/events/:id/details — photographer edits event details
+//עריכת שדות פרטים של אירוע קיים
 router.patch("/:id/details", verifyToken, async (req, res) => {
   const { name, date, place, notes } = req.body;
   if (!name || !date || !place) {
-    return res.status(400).json({ message: "name, date and place are required." });
+    return res
+      .status(400)
+      .json({ message: "name, date and place are required." });
   }
   try {
     const db = getDB();
@@ -281,7 +289,7 @@ router.patch("/:id/details", verifyToken, async (req, res) => {
   }
 });
 
-// PATCH /api/events/:id/status — photographer accepts (active) or declines (declined)
+//אישור או דחייה של אירוע מצד הצלם
 router.patch("/:id/status", verifyToken, async (req, res) => {
   const { status } = req.body;
   if (!["active", "declined"].includes(status)) {
@@ -303,120 +311,166 @@ router.patch("/:id/status", verifyToken, async (req, res) => {
   }
 });
 
-// ─── FACE FILTER: find event photos matching a selfie ─────────────────────────
-router.post("/:id/face-filter", verifyToken, selfieUpload.single("selfie"), async (req, res) => {
-  let selfiePath = null;
-  try {
-    const db = getDB();
-    const [rows] = await db.query(
-      "SELECT id FROM events WHERE id = ? AND (photographer_id = ? OR customer_id = ?)",
-      [req.params.id, req.user.id, req.user.id],
-    );
-    if (!rows.length) return res.status(403).json({ message: "Not authorized." });
-    if (!req.file)    return res.status(400).json({ message: "No selfie uploaded." });
-
-    const FACEPP_API_KEY    = process.env.FACEPP_API_KEY;
-    const FACEPP_API_SECRET = process.env.FACEPP_API_SECRET;
-    if (!FACEPP_API_KEY || !FACEPP_API_SECRET) {
-      return res.status(500).json({ message: "Face++ API credentials not configured on server." });
-    }
-
-    const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
-    
-    const faceppPost = async (endpoint, params) => {
-      await sleep(1100);
-      const body = new URLSearchParams({ api_key: FACEPP_API_KEY, api_secret: FACEPP_API_SECRET, ...params });
-      const r = await fetch(`https://api-us.faceplusplus.com/facepp/v3/${endpoint}`, { method: "POST", body });
-      if (!r.ok) {
-        const text = await r.text();
-        console.error(`[Face++] ${endpoint} HTTP ${r.status}:`, text.slice(0, 300));
-        throw new Error(`Face++ HTTP ${r.status}`);
-      }
-      const json = await r.json();
-      if (json.error_message) console.warn(`[Face++] ${endpoint} error:`, json.error_message);
-      return json;
-    };
-
-    // ── Step 1: detect the face in the selfie ─────────────────
-    selfiePath = req.file.path;
-    const selfieBase64 = fs.readFileSync(selfiePath).toString("base64");
-    console.log("[Face++] Detecting selfie face...");
-    const selfieDetect = await faceppPost("detect", { image_base64: selfieBase64 });
-    console.log("[Face++] Selfie detect response:", JSON.stringify(selfieDetect).slice(0, 300));
-
-    if (selfieDetect.error_message) {
-      return res.status(400).json({ message: `Face++ error: ${selfieDetect.error_message}` });
-    }
-    if (!selfieDetect.faces || selfieDetect.faces.length === 0) {
-      return res.status(400).json({ message: "לא זוהה פנים בסלפי. נסה תמונה ברורה יותר." });
-    }
-
-    // Pick the largest face in the selfie (most prominent)
-    const selfieFaceToken = selfieDetect.faces.sort(
-      (a, b) => (b.face_rectangle.width * b.face_rectangle.height) - (a.face_rectangle.width * a.face_rectangle.height),
-    )[0].face_token;
-    console.log("[Face++] Selfie face token:", selfieFaceToken);
-
-    // ── Step 2: scan every gallery photo ──────────────────────
-    const photoDir = path.join(__dirname, "../uploads/events", String(req.params.id));
-    if (!fs.existsSync(photoDir)) return res.json({ photos: [], total: 0 });
-
-    // Face++ does not support webp/heic — skip those formats
-    const photoFiles = fs.readdirSync(photoDir)
-      .filter((f) => /\.(jpe?g|png|gif|bmp)$/i.test(f))
-      .sort();
-
-    console.log(`[Face++] Scanning ${photoFiles.length} photos...`);
-    const matched = [];
-    for (const filename of photoFiles) {
-      try {
-        const photoBase64 = fs.readFileSync(path.join(photoDir, filename)).toString("base64");
-
-        // Detect ALL faces in this gallery photo
-        const photoDetect = await faceppPost("detect", { image_base64: photoBase64 });
-        const faceCount = photoDetect.faces?.length ?? 0;
-        console.log(`[Face++] ${filename}: ${faceCount} face(s) detected`);
-        if (faceCount === 0) continue;
-
-        // Compare the selfie face against every detected face in the photo
-        let bestConfidence = 0;
-        for (const face of photoDetect.faces) {
-          const cmp = await faceppPost("compare", {
-            face_token1: selfieFaceToken,
-            face_token2: face.face_token,
+// api של התאמת פנים
+router.post(
+  "/:id/face-filter",
+  verifyToken,
+  selfieUpload.single("selfie"),
+  async (req, res) => {
+    let selfiePath = null;
+    try {
+      const db = getDB();
+      const [rows] = await db.query(
+        "SELECT id FROM events WHERE id = ? AND (photographer_id = ? OR customer_id = ?)",
+        [req.params.id, req.user.id, req.user.id],
+      );
+      if (!rows.length)
+        return res.status(403).json({ message: "Not authorized." });
+      if (!req.file)
+        return res.status(400).json({ message: "No selfie uploaded." });
+      //מציאת מפתחות ממשתני סביבה
+      const FACEPP_API_KEY = process.env.FACEPP_API_KEY;
+      const FACEPP_API_SECRET = process.env.FACEPP_API_SECRET;
+      if (!FACEPP_API_KEY || !FACEPP_API_SECRET) {
+        return res
+          .status(500)
+          .json({
+            message: "Face++ API credentials not configured on server.",
           });
-          console.log(`[Face++]   compare → confidence: ${cmp.confidence ?? "err"} error: ${cmp.error_message ?? "none"}`);
-          if (!cmp.error_message && typeof cmp.confidence === "number") {
-            if (cmp.confidence > bestConfidence) bestConfidence = cmp.confidence;
+      }
+
+      const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+      const faceppPost = async (endpoint, params) => {
+        await sleep(1100);
+        const body = new URLSearchParams({
+          api_key: FACEPP_API_KEY,
+          api_secret: FACEPP_API_SECRET,
+          ...params,
+        });
+        const r = await fetch(
+          `https://api-us.faceplusplus.com/facepp/v3/${endpoint}`,
+          { method: "POST", body },
+        );
+        if (!r.ok) {
+          const text = await r.text();
+          console.error(
+            `[Face++] ${endpoint} HTTP ${r.status}:`,
+            text.slice(0, 300),
+          );
+          throw new Error(`Face++ HTTP ${r.status}`);
+        }
+        const json = await r.json();
+        if (json.error_message)
+          console.warn(`[Face++] ${endpoint} error:`, json.error_message);
+        return json;
+      };
+
+      //מציאת פנים בתמונה
+      selfiePath = req.file.path;
+      const selfieBase64 = fs.readFileSync(selfiePath).toString("base64");
+      console.log("[Face++] Detecting selfie face...");
+      const selfieDetect = await faceppPost("detect", {
+        image_base64: selfieBase64,
+      });
+      console.log(
+        "[Face++] Selfie detect response:",
+        JSON.stringify(selfieDetect).slice(0, 300),
+      );
+
+      if (selfieDetect.error_message) {
+        return res
+          .status(400)
+          .json({ message: `Face++ error: ${selfieDetect.error_message}` });
+      }
+      if (!selfieDetect.faces || selfieDetect.faces.length === 0) {
+        return res
+          .status(400)
+          .json({ message: "לא זוהה פנים בסלפי. נסה תמונה ברורה יותר." });
+      }
+
+      //בחירת הפנים לפי גודל
+      const selfieFaceToken = selfieDetect.faces.sort(
+        (a, b) =>
+          b.face_rectangle.width * b.face_rectangle.height -
+          a.face_rectangle.width * a.face_rectangle.height,
+      )[0].face_token;
+      console.log("[Face++] Selfie face token:", selfieFaceToken);
+
+      // סריקת כל התמונות בגלריה
+      const photoDir = path.join(
+        __dirname,
+        "../uploads/events",
+        String(req.params.id),
+      );
+      if (!fs.existsSync(photoDir)) return res.json({ photos: [], total: 0 });
+
+      
+      const photoFiles = fs
+        .readdirSync(photoDir)
+        .filter((f) => /\.(jpe?g|png|gif|bmp)$/i.test(f))
+        .sort();
+
+      console.log(`[Face++] Scanning ${photoFiles.length} photos...`);
+      const matched = [];
+      for (const filename of photoFiles) {
+        try {
+          const photoBase64 = fs
+            .readFileSync(path.join(photoDir, filename))
+            .toString("base64");
+
+          //מציאת כל הפנים בגלריה
+          const photoDetect = await faceppPost("detect", {
+            image_base64: photoBase64,
+          });
+          const faceCount = photoDetect.faces?.length ?? 0;
+          console.log(`[Face++] ${filename}: ${faceCount} face(s) detected`);
+          if (faceCount === 0) continue;
+
+          //משווה אחוזי נכונות עם סף של 80 אחוז
+          let bestConfidence = 0;
+          for (const face of photoDetect.faces) {
+            const cmp = await faceppPost("compare", {
+              face_token1: selfieFaceToken,
+              face_token2: face.face_token,
+            });
+            console.log(
+              `[Face++]   compare → confidence: ${cmp.confidence ?? "err"} error: ${cmp.error_message ?? "none"}`,
+            );
+            if (!cmp.error_message && typeof cmp.confidence === "number") {
+              if (cmp.confidence > bestConfidence)
+                bestConfidence = cmp.confidence;
+            }
+            if (bestConfidence >= 80) break;
           }
-          if (bestConfidence >= 80) break;
-        }
 
-        console.log(`[Face++] ${filename}: bestConfidence=${bestConfidence}`);
-        if (bestConfidence >= 80) {
-          matched.push({
-            filename,
-            url: `/uploads/events/${req.params.id}/${filename}`,
-            confidence: Math.round(bestConfidence * 10) / 10,
-          });
+          console.log(`[Face++] ${filename}: bestConfidence=${bestConfidence}`);
+          if (bestConfidence >= 80) {
+            matched.push({
+              filename,
+              url: `/uploads/events/${req.params.id}/${filename}`,
+              confidence: Math.round(bestConfidence * 10) / 10,
+            });
+          }
+        } catch (err) {
+          console.error(`[Face++] Error scanning ${filename}:`, err.message);
         }
-      } catch (err) {
-        console.error(`[Face++] Error scanning ${filename}:`, err.message);
       }
+
+      console.log(
+        `[Face++] Done. Matched ${matched.length}/${photoFiles.length}`,
+      );
+      return res.json({ photos: matched, total: photoFiles.length });
+    } catch (err) {
+      console.error("Face filter error:", err);
+      return res.status(500).json({ message: "Server error." });
+    } finally {
+      if (selfiePath && fs.existsSync(selfiePath)) fs.unlinkSync(selfiePath);
     }
+  },
+);
 
-    console.log(`[Face++] Done. Matched ${matched.length}/${photoFiles.length}`);
-    return res.json({ photos: matched, total: photoFiles.length });
-  } catch (err) {
-    console.error("Face filter error:", err);
-    return res.status(500).json({ message: "Server error." });
-  } finally {
-    if (selfiePath && fs.existsSync(selfiePath)) fs.unlinkSync(selfiePath);
-  }
-});
-
-// ─── GET PHOTOS FOR AN EVENT ──────────────────────────────────────────────────
+//קבלת תמונות לפי אירוע
 router.get("/:id/photos", verifyToken, async (req, res) => {
   try {
     const db = getDB();
@@ -424,15 +478,24 @@ router.get("/:id/photos", verifyToken, async (req, res) => {
       "SELECT id FROM events WHERE id = ? AND (photographer_id = ? OR customer_id = ?)",
       [req.params.id, req.user.id, req.user.id],
     );
-    if (!rows.length) return res.status(403).json({ message: "Not authorized." });
+    if (!rows.length)
+      return res.status(403).json({ message: "Not authorized." });
 
-    const dir = path.join(__dirname, "../uploads/events", String(req.params.id));
+    const dir = path.join(
+      __dirname,
+      "../uploads/events",
+      String(req.params.id),
+    );
     if (!fs.existsSync(dir)) return res.json({ photos: [] });
 
-    const photos = fs.readdirSync(dir)
+    const photos = fs
+      .readdirSync(dir)
       .filter((f) => /\.(jpe?g|png|gif|webp|heic)$/i.test(f))
       .sort()
-      .map((f) => ({ filename: f, url: `/uploads/events/${req.params.id}/${f}` }));
+      .map((f) => ({
+        filename: f,
+        url: `/uploads/events/${req.params.id}/${f}`,
+      }));
 
     return res.json({ photos });
   } catch (err) {
@@ -441,28 +504,34 @@ router.get("/:id/photos", verifyToken, async (req, res) => {
   }
 });
 
-// ─── UPLOAD PHOTOS TO AN EVENT (photographer only) ────────────────────────────
-router.post("/:id/photos", verifyToken, eventUpload.array("photos", 50), async (req, res) => {
-  try {
-    const db = getDB();
-    const [rows] = await db.query(
-      "SELECT id FROM events WHERE id = ? AND photographer_id = ?",
-      [req.params.id, req.user.id],
-    );
-    if (!rows.length) return res.status(403).json({ message: "Not authorized." });
+//העלאת תמונות לאירוע בתור צלם
+router.post(
+  "/:id/photos",
+  verifyToken,
+  eventUpload.array("photos", 50),
+  async (req, res) => {
+    try {
+      const db = getDB();
+      const [rows] = await db.query(
+        "SELECT id FROM events WHERE id = ? AND photographer_id = ?",
+        [req.params.id, req.user.id],
+      );
+      if (!rows.length)
+        return res.status(403).json({ message: "Not authorized." });
 
-    const uploaded = (req.files || []).map((f) => ({
-      filename: f.filename,
-      url: `/uploads/events/${req.params.id}/${f.filename}`,
-    }));
-    return res.json({ photos: uploaded });
-  } catch (err) {
-    console.error("Upload photos error:", err);
-    return res.status(500).json({ message: "Server error." });
-  }
-});
+      const uploaded = (req.files || []).map((f) => ({
+        filename: f.filename,
+        url: `/uploads/events/${req.params.id}/${f.filename}`,
+      }));
+      return res.json({ photos: uploaded });
+    } catch (err) {
+      console.error("Upload photos error:", err);
+      return res.status(500).json({ message: "Server error." });
+    }
+  },
+);
 
-// ─── DELETE A PHOTO FROM AN EVENT (photographer only) ─────────────────────────
+//מחיקת תמונה מאירוע לצלם בלבד
 router.delete("/:id/photos/:filename", verifyToken, async (req, res) => {
   try {
     const db = getDB();
@@ -470,10 +539,15 @@ router.delete("/:id/photos/:filename", verifyToken, async (req, res) => {
       "SELECT id FROM events WHERE id = ? AND photographer_id = ?",
       [req.params.id, req.user.id],
     );
-    if (!rows.length) return res.status(403).json({ message: "Not authorized." });
+    if (!rows.length)
+      return res.status(403).json({ message: "Not authorized." });
 
-    // Prevent path traversal
-    const safeDir  = path.resolve(__dirname, "../uploads/events", String(req.params.id));
+   
+    const safeDir = path.resolve(
+      __dirname,
+      "../uploads/events",
+      String(req.params.id),
+    );
     const filePath = path.resolve(safeDir, req.params.filename);
     if (!filePath.startsWith(safeDir)) {
       return res.status(400).json({ message: "Invalid filename." });

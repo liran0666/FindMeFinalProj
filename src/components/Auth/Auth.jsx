@@ -1,10 +1,10 @@
-// Auth.jsx - Login & Register pages
+
 
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import styles from "./Auth.module.css";
 
-// ─── LOGIN ────────────────────────────────────────────────────────────────────
+//התחברות
 export function LoginPage({ onLogin }) {
   const navigate = useNavigate();
   const [form, setForm] = useState({ email: "", password: "" });
@@ -92,7 +92,7 @@ export function LoginPage({ onLogin }) {
   );
 }
 
-// ─── REGISTER ─────────────────────────────────────────────────────────────────
+//הרשמה
 export function RegisterPage({ onRegister }) {
   const navigate = useNavigate();
   const [role, setRole] = useState("customer");
@@ -112,7 +112,7 @@ export function RegisterPage({ onRegister }) {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
-  // Clean up preview object URL when component unmounts or file changes
+
   useEffect(() => {
     return () => {
       if (profilePicPreview) URL.revokeObjectURL(profilePicPreview);
@@ -158,6 +158,10 @@ export function RegisterPage({ onRegister }) {
       setError("אנא מלא את כל השדות החובה");
       return;
     }
+    if (form.dateOfBirth && new Date(form.dateOfBirth) > new Date()) {
+      setError("תאריך לא יכול להיות מאוחר מהיום");
+      return;
+    }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
       setError("כתובת האימייל אינה תקינה");
       return;
@@ -166,7 +170,7 @@ export function RegisterPage({ onRegister }) {
       setError("הסיסמאות אינן תואמות");
       return;
     }
-    if(form.phone.length<10||!form.phone.startsWith("05"))
+    if(form.phone.length<10||!form.phone.startsWith("05")||isNaN(form.phone))
     {
       setError("מספר טלפון לא תקין")
       return;
@@ -206,7 +210,7 @@ export function RegisterPage({ onRegister }) {
             <p className={styles.authFormSubtitle}>צור חשבון חדש ותתחיל</p>
           </div>
 
-          {/* Role selector */}
+          
           <div className={styles.roleSelector}>
             {[
               {
@@ -237,7 +241,7 @@ export function RegisterPage({ onRegister }) {
             ))}
           </div>
 
-          {/* Profile picture */}
+          
           <div className={styles.sectionDivider}>תמונת פרופיל</div>
           <div className={styles.avatarPickerRow}>
             <label
@@ -283,7 +287,7 @@ export function RegisterPage({ onRegister }) {
             )}
           </div>
 
-          {/* Account details */}
+          
           <div className={styles.sectionDivider}>פרטי חשבון</div>
 
           <div className={styles.formGroup}>
@@ -357,7 +361,7 @@ export function RegisterPage({ onRegister }) {
             </div>
           </div>
 
-          {/* Personal details */}
+          
           <div className={styles.sectionDivider}>פרטים אישיים</div>
 
           <div className={styles.formRow}>
@@ -382,7 +386,7 @@ export function RegisterPage({ onRegister }) {
             </div>
           </div>
 
-          {/* Services — photographers only */}
+          
           {role === "photographer" && (
             <>
               <div className={styles.sectionDivider}>
@@ -438,7 +442,7 @@ export function RegisterPage({ onRegister }) {
   );
 }
 
-// ─── RESET PASSWORD ───────────────────────────────────────────────────────────
+//איפוס סיסמא
 export function ResetPasswordPage() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
@@ -517,7 +521,7 @@ export function ResetPasswordPage() {
   );
 }
 
-// ─── DECORATIVE PANEL ─────────────────────────────────────────────────────────
+//פאנל התחברות
 function DecorativePanel() {
   return (
     <div className={styles.authPanel}>

@@ -40,7 +40,7 @@ export default function App() {
       .catch(() => localStorage.removeItem("token"))
       .finally(() => setLoading(false));
   }, []);
-
+//התחברות
   const handleLogin = async (formData) => {
     const res = await fetch(`${AUTH_BASE_URL}/login`, {
       method: "POST",
@@ -52,7 +52,7 @@ export default function App() {
     localStorage.setItem("token", data.token);
     setUser(data.user);
   };
-
+//הרשמה
   const handleRegister = async (formData) => {
     const isFormData = formData instanceof FormData;
     const fetchOptions = {
@@ -67,14 +67,14 @@ export default function App() {
     localStorage.setItem("token", data.token);
     setUser(data.user);
   };
-
+//התנתקות
   const handleLogout = () => {
     localStorage.removeItem("token");
     setUser(null);
   };
 
   if (loading) return null;
-  console.log("USER OBJECT:", JSON.stringify(user));
+  console.log("USER:", JSON.stringify(user));
   return (
     <Router>
       {user && <Navbar user={user} onLogout={handleLogout} />}

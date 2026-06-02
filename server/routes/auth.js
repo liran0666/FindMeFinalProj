@@ -9,15 +9,13 @@ import nodemailer from "nodemailer";
 import { fileURLToPath } from "url";
 import getDB from "../db.js";
 
-
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || "user";
 
-// ─── MULTER SETUP ─────────────────────────────────────────────────────────────
+// פתיחת multer
 const uploadsDir = path.join(__dirname, "../uploads");
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 
@@ -38,12 +36,25 @@ const upload = multer({
   },
 });
 
-// ─── REGISTER ────────────────────────────────────────────────────────────────
+// פונקציית הרשמה למשתמש לא קיים
 router.post("/register", upload.single("profile_pic"), async (req, res) => {
-  const { username, email,phone, password, userType, dateOfBirth, city, service1, service2, service3 } = req.body;
+  const {
+    username,
+    email,
+    phone,
+    password,
+    userType,
+    dateOfBirth,
+    city,
+    service1,
+    service2,
+    service3,
+  } = req.body;
 
   if (!username || !email || !password) {
-    return res.status(400).json({ message: "username, email and password are required." });
+    return res
+      .status(400)
+      .json({ message: "username, email and password are required." });
   }
 
   try {
@@ -53,16 +64,22 @@ router.post("/register", upload.single("profile_pic"), async (req, res) => {
       "SELECT id FROM users WHERE email = ? OR userName = ?",
       [email, username],
     );
+    //בדיקת קיימות משתמש
     if (existing.length > 0) {
-      return res.status(409).json({ message: "Email or username already taken." });
+      return res
+        .status(409)
+        .json({ message: "Email or username already taken." });
     }
-
+    //משתמש תמיד מקבל -1
     const rating = userType === "photographer" ? 0 : -1;
-    // customers always get service 0 (no service)
-    const s1 = userType === "photographer" ? (service1 || 0) : 0;
-    const s2 = userType === "photographer" ? (service2 || 0) : 0;
-    const s3 = userType === "photographer" ? (service3 || 0) : 0;
-    const profilePic = req.file ? `/uploads/${req.file.filename}`: `/uploads/generic.png`;
+
+    // משתמש תמיד מקבל 0
+    const s1 = userType === "photographer" ? service1 || 0 : 0;
+    const s2 = userType === "photographer" ? service2 || 0 : 0;
+    const s3 = userType === "photographer" ? service3 || 0 : 0;
+    const profilePic = req.file
+      ? `/uploads/${req.file.filename}`
+      : `/uploads/generic.png`;
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -78,13 +95,20 @@ router.post("/register", upload.single("profile_pic"), async (req, res) => {
         dateOfBirth || null,
         city || null,
         rating,
-        s1, s2, s3,
+        s1,
+        s2,
+        s3,
         profilePic,
       ],
     );
-
+    // התחברות לסשן טוקן
     const token = jwt.sign(
-      { id: result.insertId, userName: username, email, userType: userType || "user" },
+      {
+        id: result.insertId,
+        userName: username,
+        email,
+        userType: userType || "user",
+      },
       JWT_SECRET,
       { expiresIn: "6Hrs" },
     );
@@ -92,7 +116,16 @@ router.post("/register", upload.single("profile_pic"), async (req, res) => {
     return res.status(201).json({
       message: "User registered successfully.",
       token,
-      user: { id: result.insertId, username, email,phone, userType: userType || "user", dateOfBirth, city, profile_pic: profilePic },
+      user: {
+        id: result.insertId,
+        username,
+        email,
+        phone,
+        userType: userType || "user",
+        dateOfBirth,
+        city,
+        profile_pic: profilePic,
+      },
     });
   } catch (err) {
     console.error("Register error:", err);
@@ -100,21 +133,22 @@ router.post("/register", upload.single("profile_pic"), async (req, res) => {
   }
 });
 
-// ─── LOGIN ────────────────────────────────────────────────────────────────────
+//פונקצית התחברות
 router.post("/login", async (req, res) => {
   const { email, password } = req.body;
 
   if (!email || !password) {
-    return res.status(400).json({ message: "Email and password are required." });
+    return res
+      .status(400)
+      .json({ message: "Email and password are required." });
   }
 
   try {
     const db = getDB();
 
-    const [rows] = await db.query(
-      "SELECT * FROM users WHERE email = ?",
-      [email],
-    );
+    const [rows] = await db.query("SELECT * FROM users WHERE email = ?", [
+      email,
+    ]);
 
     if (rows.length === 0) {
       return res.status(401).json({ message: "Invalid email or password." });
@@ -127,7 +161,12 @@ router.post("/login", async (req, res) => {
     }
 
     const token = jwt.sign(
-      { id: user.id, userName: user.userName, email: user.email, userType: user.userType },
+      {
+        id: user.id,
+        userName: user.userName,
+        email: user.email,
+        userType: user.userType,
+      },
       JWT_SECRET,
       { expiresIn: "6Hrs" },
     );
@@ -154,7 +193,7 @@ router.post("/login", async (req, res) => {
   }
 });
 
-
+// בדיקת קיימות משתמש מחובר (לפי טוקן סשן)
 router.get("/me", async (req, res) => {
   const authHeader = req.headers.authorization;
   if (!authHeader?.startsWith("Bearer ")) {
@@ -178,7 +217,7 @@ router.get("/me", async (req, res) => {
   }
 });
 
-
+// עדכון תמונת פרופיל
 router.put("/profile-pic", upload.single("profile_pic"), async (req, res) => {
   const authHeader = req.headers.authorization;
   if (!authHeader?.startsWith("Bearer ")) {
@@ -199,29 +238,38 @@ router.put("/profile-pic", upload.single("profile_pic"), async (req, res) => {
   try {
     const db = getDB();
 
-    // Delete old file if it exists
-    const [rows] = await db.query("SELECT profile_pic FROM users WHERE id = ?", [decoded.id]);
+    //דורס קובץ ישן
+    const [rows] = await db.query(
+      "SELECT profile_pic FROM users WHERE id = ?",
+      [decoded.id],
+    );
     if (rows.length && rows[0].profile_pic) {
       const oldPath = path.join(uploadsDir, path.basename(rows[0].profile_pic));
       if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
     }
 
     const newPic = `/uploads/${req.file.filename}`;
-    await db.query("UPDATE users SET profile_pic = ? WHERE id = ?", [newPic, decoded.id]);
+    await db.query("UPDATE users SET profile_pic = ? WHERE id = ?", [
+      newPic,
+      decoded.id,
+    ]);
 
     const [updated] = await db.query(
       "SELECT id, userType, email, userName, dateOfBirth, city, service1, service2, service3, profile_pic FROM users WHERE id = ?",
       [decoded.id],
     );
     const u = updated[0];
-    return res.json({ message: "Profile picture updated.", user: { ...u, username: u.userName } });
+    return res.json({
+      message: "Profile picture updated.",
+      user: { ...u, username: u.userName },
+    });
   } catch (err) {
     console.error("Profile pic update error:", err);
     return res.status(500).json({ message: "Server error." });
   }
 });
 
-// ─── UPDATE PROFILE ───────────────────────────────────────────────────────────
+// עדכון פרטים אישיים
 router.put("/profile", async (req, res) => {
   const authHeader = req.headers.authorization;
   if (!authHeader?.startsWith("Bearer ")) {
@@ -236,10 +284,13 @@ router.put("/profile", async (req, res) => {
     return res.status(401).json({ message: "Invalid or expired token." });
   }
 
-  const { username, email,phone, city, service1, service2, service3 } = req.body;
+  const { username, email, phone, city, service1, service2, service3 } =
+    req.body;
 
   if (!username || !email) {
-    return res.status(400).json({ message: "Username and email are required." });
+    return res
+      .status(400)
+      .json({ message: "Username and email are required." });
   }
 
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -250,18 +301,24 @@ router.put("/profile", async (req, res) => {
   try {
     const db = getDB();
 
-    // Check uniqueness (exclude current user)
+    // בדיקת ייחודיות של אימייל או שם משתמש
     const [existing] = await db.query(
       "SELECT id FROM users WHERE (email = ? OR userName = ?) AND id != ?",
       [email, username, decoded.id],
     );
     if (existing.length > 0) {
-      return res.status(409).json({ message: "Email or username already taken." });
+      return res
+        .status(409)
+        .json({ message: "Email or username already taken." });
     }
 
-    // Fetch current user to know their type
-    const [userRows] = await db.query("SELECT userType FROM users WHERE id = ?", [decoded.id]);
-    if (userRows.length === 0) return res.status(404).json({ message: "User not found." });
+    // קבלת סוג משתמש מהמשתמש הקיים
+    const [userRows] = await db.query(
+      "SELECT userType FROM users WHERE id = ?",
+      [decoded.id],
+    );
+    if (userRows.length === 0)
+      return res.status(404).json({ message: "User not found." });
     const isPhotographer = userRows[0].userType === "photographer";
 
     if (isPhotographer) {
@@ -270,7 +327,7 @@ router.put("/profile", async (req, res) => {
       const s3 = service3 || 0;
       await db.query(
         "UPDATE users SET userName = ?, email = ?, phone=?,city = ?, service1 = ?, service2 = ?, service3 = ? WHERE id = ?",
-        [username, email,phone, city || null, s1, s2, s3, decoded.id],
+        [username, email, phone, city || null, s1, s2, s3, decoded.id],
       );
     } else {
       await db.query(
@@ -284,19 +341,22 @@ router.put("/profile", async (req, res) => {
       [decoded.id],
     );
     const u = updated[0];
-    return res.json({ message: "Profile updated.", user: { ...u, username: u.userName } });
+    return res.json({
+      message: "Profile updated.",
+      user: { ...u, username: u.userName },
+    });
   } catch (err) {
     console.error("Profile update error:", err);
     return res.status(500).json({ message: "Server error." });
   }
 });
 
-// ─── SERVICES ─────────────────────────────────────────────────────────────────
+// קבלת כל השירותים ממסד הנתונים
 router.get("/services", async (_req, res) => {
   try {
     const db = getDB();
     const [rows] = await db.query(
-      "SELECT id, type FROM services WHERE id > 0 ORDER BY id ASC"
+      "SELECT id, type FROM services WHERE id > 0 ORDER BY id ASC",
     );
     res.json(rows);
   } catch (err) {
@@ -305,7 +365,7 @@ router.get("/services", async (_req, res) => {
   }
 });
 
-// ─── PHOTOGRAPHERS LIST ───────────────────────────────────────────────────────
+// קבלת כל הצלמים ממסד הנתונים
 router.get("/photographers", async (req, res) => {
   try {
     const db = getDB();
@@ -327,11 +387,12 @@ router.get("/photographers", async (req, res) => {
   }
 });
 
-// ─── PHOTOGRAPHER BY ID ───────────────────────────────────────────────────────
+// קבלת צלם לפי id
 router.get("/photographers/:id", async (req, res) => {
   try {
     const db = getDB();
-    const [rows] = await db.query(`
+    const [rows] = await db.query(
+      `
       SELECT u.id, u.userName, u.city, u.rating, u.dateOfBirth, u.profile_pic,
              s1.type AS service1Name,
              s2.type AS service2Name,
@@ -342,7 +403,9 @@ router.get("/photographers/:id", async (req, res) => {
       LEFT JOIN services s2 ON s2.id = u.service2 AND u.service2 > 0
       LEFT JOIN services s3 ON s3.id = u.service3 AND u.service3 > 0
       WHERE u.id = ? AND u.userType = 'photographer'
-    `, [req.params.id]);
+    `,
+      [req.params.id],
+    );
 
     if (rows.length === 0)
       return res.status(404).json({ message: "Photographer not found." });
@@ -353,24 +416,25 @@ router.get("/photographers/:id", async (req, res) => {
   }
 });
 
-
-
-
-// ─── RESET PASSWORD ───────────────────────────────────────────────────────────
+// איפוס סיסמא שימוש ב node mailer
 router.post("/reset-password", async (req, res) => {
   const { email } = req.body;
   if (!email) return res.status(400).json({ message: "Email is required." });
 
   try {
     const db = getDB();
-    const [rows] = await db.query("SELECT id FROM users WHERE email = ?", [email]);
+    const [rows] = await db.query("SELECT id FROM users WHERE email = ?", [
+      email,
+    ]);
 
-    // Always respond the same way so attackers can't enumerate emails
     if (rows.length === 0) return res.json({ message: "ok" });
-
-    const tempPassword = crypto.randomBytes(5).toString("hex"); // e.g. "a3f9b2c1d0"
+    // יצירת סיסמא רנדומאלית ועדכונה במסד הנתונים
+    const tempPassword = crypto.randomBytes(5).toString("hex");
     const hashed = await bcrypt.hash(tempPassword, 10);
-    await db.query("UPDATE users SET password = ? WHERE email = ?", [hashed, email]);
+    await db.query("UPDATE users SET password = ? WHERE email = ?", [
+      hashed,
+      email,
+    ]);
 
     const transporter = nodemailer.createTransport({
       service: "gmail",
@@ -390,7 +454,7 @@ router.post("/reset-password", async (req, res) => {
           <p>קיבלנו בקשה לאיפוס הסיסמה שלך.</p>
           <p>הסיסמה הזמנית שלך היא:</p>
           <p style="font-size:22px;font-weight:bold;letter-spacing:4px;color:#1565c0">${tempPassword}</p>
-          <p>היכנס עם סיסמה זו ושנה אותה מיד בהגדרות החשבון.</p>
+          <p>היכנס עם סיסמה זו.</p>
           <p style="color:#888;font-size:12px">אם לא ביקשת איפוס, התעלם ממייל זה.</p>
         </div>
       `,

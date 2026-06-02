@@ -1,4 +1,4 @@
-// PhotographerDashboard.jsx
+// PhotographerDashboard.jsx- מסך בית של צלם
 
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
@@ -41,8 +41,8 @@ const API = "http://localhost:5000/api/events";
 
 export function PhotographerDashboard({ user }) {
   const navigate = useNavigate();
-  const [requests, setRequests] = useState([]);   // status = "pending"
-  const [events, setEvents] = useState([]);        // status = "active"
+  const [requests, setRequests] = useState([]);   // status = "ממתין"
+  const [events, setEvents] = useState([]);        // status = "פעיל"
   const [loading, setLoading] = useState(true);
   const [selectedEvent,  setSelectedEvent]  = useState(null);
   const [detailsRequest, setDetailsRequest] = useState(null);
@@ -66,7 +66,7 @@ export function PhotographerDashboard({ user }) {
   useEffect(() => { fetchEvents(); }, []);
 
   const handleAction = async (id, action) => {
-    // action: "active" (accept) | "declined" (decline)
+    // פעולה של דחייה או אישור
     const token = localStorage.getItem("token");
     try {
       await fetch(`${API}/${id}/status`, {
@@ -77,7 +77,7 @@ export function PhotographerDashboard({ user }) {
         },
         body: JSON.stringify({ status: action }),
       });
-      // update local state instead of re-fetching
+      // עדכון של מצב בקשה
       const req = requests.find((r) => r.id === id);
       setRequests((prev) => prev.filter((r) => r.id !== id));
       if (action === "active" && req) {
@@ -88,7 +88,7 @@ export function PhotographerDashboard({ user }) {
     }
   };
 
-  // split active events by date
+  // חלוקת אירועים לפי מצב
   const pastEvents     = events.filter((e) => isPast(e.date));
   const todayEvents    = events.filter((e) => isToday(e.date));
   const upcomingEvents = events.filter((e) => !isPast(e.date) && !isToday(e.date));
@@ -135,7 +135,7 @@ export function PhotographerDashboard({ user }) {
       </div>
       <div className={styles.pageSubtitle}>הנה מה שקורה עם העסק שלך היום</div>
 
-      {/* Summary row */}
+      
       <div className={styles.summaryRow}>
         {[
           { icon: "📩", value: requests.length,      label: "בקשות ממתינות",  to: "/photographer/requests" },
@@ -151,7 +151,7 @@ export function PhotographerDashboard({ user }) {
         ))}
       </div>
 
-      {/* New requests */}
+      
       <div className={styles.section}>
         <div className={styles.sectionHeader}>
           <div className={styles.sectionTitle}>
@@ -180,7 +180,7 @@ export function PhotographerDashboard({ user }) {
         )}
       </div>
 
-      {/* Active events */}
+      {/* אירועים פעילים */}
       <div className={styles.section}>
         <div className={styles.sectionHeader}>
           <div className={styles.sectionTitle}>📅 אירועים</div>
@@ -232,7 +232,7 @@ export function PhotographerDashboard({ user }) {
     </div>
   );
 }
-
+//פרטים של אירוע
 function EventDetailsModal({ event, onClose }) {
   const d = new Date(event.date);
   const dateStr = `${String(d.getDate()).padStart(2,"0")}/${String(d.getMonth()+1).padStart(2,"0")}/${d.getFullYear()}`;
@@ -266,7 +266,7 @@ function EventDetailsModal({ event, onClose }) {
     </div>
   );
 }
-
+// בקשה של אירוע בקטן
 function RequestCard({ request: r, onAction, onDetails }) {
   const [busy, setBusy] = useState(false);
   const d = new Date(r.date);
@@ -297,7 +297,7 @@ function RequestCard({ request: r, onAction, onDetails }) {
     </div>
   );
 }
-
+//בקשה של אירוע מלאה
 function RequestDetailsModal({ event: ev, onClose, onAction }) {
   const [busy, setBusy] = useState(false);
   const d = new Date(ev.date);

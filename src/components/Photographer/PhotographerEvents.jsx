@@ -1,4 +1,4 @@
-// PhotographerEvents.jsx — full page for all photographer events
+// PhotographerEvents.jsx — אירועים של הצלם
 
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
@@ -132,7 +132,7 @@ export function PhotographerEvents() {
     </div>
   );
 }
-
+//פרטים של אירוע
 function EventDetailsModal({ event, onClose, onGallery, onUpdate }) {
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({
@@ -149,7 +149,7 @@ function EventDetailsModal({ event, onClose, onGallery, onUpdate }) {
   const dateStr = `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
 
   const set = (field) => (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
-
+//שמירה של שינויים
   const handleSave = async () => {
     if (!form.name || !form.date || !form.place) {
       setError("נא למלא סוג אירוע, תאריך ומיקום.");
@@ -183,7 +183,7 @@ function EventDetailsModal({ event, onClose, onGallery, onUpdate }) {
         <h2 className={styles.modalTitle}>{editing ? "עריכת אירוע" : event.name}</h2>
 
         {editing ? (
-          /* ── Edit form ── */
+          /* ── עריכה של פרטי אירוע ── */
           <div className={styles.editForm}>
             <div className={styles.editField}>
               <label className={styles.editLabel}>סוג אירוע</label>
@@ -212,7 +212,7 @@ function EventDetailsModal({ event, onClose, onGallery, onUpdate }) {
             </div>
           </div>
         ) : (
-          /* ── View mode ── */
+          
           <>
             <div className={styles.modalDetails}>
               {[

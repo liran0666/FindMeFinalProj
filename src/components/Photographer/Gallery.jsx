@@ -1,4 +1,4 @@
-// Gallery.jsx — real event photo gallery (photographer upload / customer view)
+// Gallery.jsx — גלריית תמונות גם לצלם וגם למשתמש
 
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
@@ -18,13 +18,13 @@ export function GalleryPage({ isCustomer = false }) {
   const [lightbox,       setLightbox]       = useState(null);
   const [error,          setError]          = useState("");
 
-  // Face filter state
+  // state של פילטר פנים
   const [faceFiltering,  setFaceFiltering]  = useState(false);
   const [filteredPhotos, setFilteredPhotos] = useState(null);
   const [faceFilterMsg,  setFaceFilterMsg]  = useState("");
   const [selfiePreview,  setSelfiePreview]  = useState(null);
 
-  // Selection state
+  // state של בחירת תמונה
   const [selected, setSelected] = useState(new Set());
 
   const fileInputRef   = useRef(null);
@@ -41,10 +41,10 @@ export function GalleryPage({ isCustomer = false }) {
 
   useEffect(() => { fetchPhotos(); }, [eventId]);
 
-  // Clear selection when displayed photos change
+  //ניקוי בחירה אם יש שינוי בתמונות
   useEffect(() => { setSelected(new Set()); }, [filteredPhotos]);
 
-  // ── Upload (photographer) ─────────────────────────────────────
+  // העלאת תמונות (צלם)
   const uploadFiles = async (files) => {
     if (!files.length) return;
     setUploading(true);
@@ -69,7 +69,7 @@ export function GalleryPage({ isCustomer = false }) {
     }
   };
 
-  // ── Delete ────────────────────────────────────────────────────
+  // מחיקת תמונות (רק לצלם)
   const deletePhoto = async (filename) => {
     if (!confirm("למחוק את התמונה?")) return;
     const token = localStorage.getItem("token");
@@ -86,7 +86,7 @@ export function GalleryPage({ isCustomer = false }) {
     }
   };
 
-  // ── Face filter (customer) ────────────────────────────────────
+  // סינון פנים (לקוח)
   const handleSelfieChange = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -126,20 +126,20 @@ export function GalleryPage({ isCustomer = false }) {
     setSelfiePreview(null);
   };
 
-  // ── Selection helpers ─────────────────────────────────────────
+  //בחירה מרובה של תמונות
   const toggleSelect = (filename, e) => {
     e.stopPropagation();
     setSelected((prev) => {
       const s = new Set(prev);
-      s.has(filename) ? s.delete(filename) : s.add(filename);
+      s.has(filename) ? s.delete(filename) : s.add(filename);//אם לחיצה קיימת מוריד, אם לא אז מוסיף
       return s;
     });
   };
-
+//ניקוי בחירה
   const clearSelection = () => setSelected(new Set());
-
+//בחירת הכל
   const selectAll = () => setSelected(new Set(displayedPhotos.map((p) => p.filename)));
-
+//מחיקת תמונות שנבחרו (צלם)
   const deleteSelected = async () => {
     if (!confirm(`למחוק ${selected.size} תמונות?`)) return;
     const token = localStorage.getItem("token");
@@ -173,13 +173,13 @@ export function GalleryPage({ isCustomer = false }) {
         document.body.removeChild(a);
         URL.revokeObjectURL(blobUrl);
       } catch {
-        // skip failed downloads silently
+        //מדלג על תמונות שלא ניתנו להורדה ללא הפרעה
       }
       await new Promise((r) => setTimeout(r, 400));
     }
   };
 
-  // ── Drag & drop ───────────────────────────────────────────────
+  // גרור ושחרר תמונה להעלאה
   const onDrop = (e) => {
     e.preventDefault();
     setDragover(false);
@@ -190,7 +190,7 @@ export function GalleryPage({ isCustomer = false }) {
 
   return (
     <div className={styles.page}>
-      {/* Back */}
+      {/* חזור */}
       <button
         className={styles.backBtn}
         onClick={() => navigate(isCustomer ? "/customer/events" : "/photographer/events")}
@@ -198,7 +198,7 @@ export function GalleryPage({ isCustomer = false }) {
         ← חזרה לאירועים
       </button>
 
-      {/* Header */}
+      
       <div className={styles.pageHeader}>
         <div>
           <div className={styles.pageTitle}>🖼️ גלריה</div>
@@ -213,7 +213,7 @@ export function GalleryPage({ isCustomer = false }) {
         )}
       </div>
 
-      {/* Hidden file inputs */}
+      {/*במידה ולקוח, מוסיף אופציה לסלפי */}
       {!isCustomer && (
         <input ref={fileInputRef} type="file" accept="image/*" multiple style={{ display: "none" }}
           onChange={(e) => uploadFiles(e.target.files)} />
@@ -225,7 +225,7 @@ export function GalleryPage({ isCustomer = false }) {
 
       {error && <div className={styles.errorBanner}>{error}</div>}
 
-      {/* Customer banners */}
+      {/* התראות ללקוח */}
       {isCustomer && photos.length > 0 && (
         <>
           <div className={styles.sharedBanner}>
@@ -260,7 +260,7 @@ export function GalleryPage({ isCustomer = false }) {
         </>
       )}
 
-      {/* Drag-and-drop upload zone (photographer only) */}
+      {/* גרור ושחרר העלאת תמונות (צלם בלבד) */}
       {!isCustomer && (
         <div
           className={`${styles.uploadZone} ${dragover ? styles.dragover : ""} ${photos.length > 0 ? styles.uploadZoneCompact : ""}`}
@@ -275,7 +275,7 @@ export function GalleryPage({ isCustomer = false }) {
         </div>
       )}
 
-      {/* Loading */}
+      {/* טעינת תמונות */}
       {loading && (
         <div className={styles.emptyState}>
           <div className={styles.emptyIcon}>⏳</div>
@@ -283,7 +283,7 @@ export function GalleryPage({ isCustomer = false }) {
         </div>
       )}
 
-      {/* Scanning overlay */}
+      {/* באנר של המתנה לניתוח תמונות פנים */}
       {faceFiltering && (
         <div className={styles.scanOverlay}>
           <div className={styles.scanBox}>
@@ -294,7 +294,7 @@ export function GalleryPage({ isCustomer = false }) {
         </div>
       )}
 
-      {/* Empty state */}
+      {/* במידה ולא נמצא תמונות */}
       {!loading && displayedPhotos.length === 0 && !faceFiltering && (
         <div className={styles.emptyState}>
           <div className={styles.emptyIcon}>{isCustomer ? "📷" : "🖼️"}</div>
@@ -306,7 +306,7 @@ export function GalleryPage({ isCustomer = false }) {
         </div>
       )}
 
-      {/* Photo grid */}
+      {/* גלריה של תמונות */}
       {!loading && displayedPhotos.length > 0 && (
         <>
         <div className={styles.gridHeader}>
@@ -324,7 +324,7 @@ export function GalleryPage({ isCustomer = false }) {
               >
                 <img src={`${SERVER}${photo.url}`} alt="" className={styles.photoImg} loading="lazy" />
 
-                {/* Selection circle */}
+                {/* עיגול בחירה*/}
                 <div
                   className={`${styles.selectCircle} ${isSelected ? styles.selectCircleChecked : ""}`}
                   onClick={(e) => toggleSelect(photo.filename, e)}
@@ -370,7 +370,7 @@ export function GalleryPage({ isCustomer = false }) {
         </>
       )}
 
-      {/* Selection bar */}
+      {/* שורת בחירות (אחרי בחירת תמונות מרובה) */}
       {selected.size > 0 && (
         <div className={styles.selectionBar}>
           <span className={styles.selectionCount}>{selected.size} תמונות נבחרו</span>
@@ -388,7 +388,7 @@ export function GalleryPage({ isCustomer = false }) {
         </div>
       )}
 
-      {/* Lightbox */}
+      {/* זכוכית מגדלת תמונה */}
       {lightbox && (
         <div className={styles.lightboxOverlay} onClick={() => setLightbox(null)}>
           <button className={styles.lightboxClose} onClick={() => setLightbox(null)}>✕</button>

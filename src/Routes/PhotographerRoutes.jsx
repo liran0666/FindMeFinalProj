@@ -6,7 +6,7 @@ import { GalleryPage } from "../components/Photographer/Gallery.jsx";
 import { StatsPage } from "../components/Photographer/Stats.jsx";
 import { ProfilePage } from "../components/Shared/Profile.jsx";
 import { PhotographerReceipt } from "../components/Photographer/PhotographerReceipt.jsx";
-
+// הפרדת קומפוננטות של צלם
 export default function PhotographerRoutes({ user, setUser }) {
   return (
     <Routes>

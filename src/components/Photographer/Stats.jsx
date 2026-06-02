@@ -1,4 +1,4 @@
-// Stats.jsx - Photographer statistics page
+// Stats.jsx - סטטיסטיקות של הצלם
 
 import { useState, useEffect } from "react";
 import styles from "./Stats.module.css";
@@ -25,7 +25,7 @@ export function StatsPage({ user }) {
       .finally(() => setLoading(false));
   }, [period]);
 
-  // Build full 12-month array (months with no events → 0)
+  // בניית מערך של חודשים
   const monthlyData = MONTH_LABELS.map((label, i) => {
     const found = data?.monthly?.find((m) => m.month === i + 1);
     return { month: label, events: found ? Number(found.events) : 0 };
@@ -80,7 +80,7 @@ export function StatsPage({ user }) {
             ))}
           </div>
 
-          {/* Monthly bar chart */}
+          {/* עמודות חודש */}
           <div className={styles.chartCard} style={{ marginBottom: 24 }}>
             <div className={styles.chartTitle}>📅 אירועים לפי חודש — {period}</div>
             <div className={styles.barChart}>
@@ -100,7 +100,7 @@ export function StatsPage({ user }) {
           </div>
 
           <div className={styles.twoCol}>
-            {/* Event types */}
+            {/* סוג אירוע */}
             <div className={styles.chartCard}>
               <div className={styles.chartTitle} style={{ marginBottom: 20 }}>
                 📷 פירוט לפי סוג אירוע
@@ -125,7 +125,7 @@ export function StatsPage({ user }) {
               )}
             </div>
 
-            {/* Status totals */}
+            {/* סיכום סטטוס */}
             <div className={styles.chartCard}>
               <div className={styles.chartTitle} style={{ marginBottom: 20 }}>
                 📋 סיכום סטטוסים (כולל)

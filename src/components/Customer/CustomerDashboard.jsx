@@ -1,4 +1,4 @@
-// CustomerDashboard.jsx — customer home page
+// CustomerDashboard.jsx — דף הבית של הלקוח
 
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
@@ -7,8 +7,12 @@ import styles from "./CustomerDashboard.module.css";
 const API = "http://localhost:5000/api/events";
 
 const EVENT_ICONS = {
-  חתונה: "💍", "בר מצווה": "✡️", "יום הולדת": "🎂",
-  סיום: "🎓", עסקי: "💼", אחר: "📸",
+  חתונה: "💍",
+  "בר מצווה": "✡️",
+  "יום הולדת": "🎂",
+  סיום: "🎓",
+  עסקי: "💼",
+  אחר: "📸",
 };
 function getIcon(name) {
   const match = Object.entries(EVENT_ICONS).find(([k]) => name?.includes(k));
@@ -16,76 +20,86 @@ function getIcon(name) {
 }
 
 function daysUntil(dateVal) {
-  const today = new Date(); today.setHours(0, 0, 0, 0);
-  const d     = new Date(dateVal); d.setHours(0, 0, 0, 0);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const d = new Date(dateVal);
+  d.setHours(0, 0, 0, 0);
   return Math.round((d - today) / 86400000);
 }
 
 function formatDate(dateVal) {
   const d = new Date(dateVal);
-  return `${String(d.getDate()).padStart(2,"0")}/${String(d.getMonth()+1).padStart(2,"0")}/${d.getFullYear()}`;
+  return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
 }
 
 function countdownLabel(days) {
   if (days === 0) return { number: "היום", unit: "🎉" };
-  if (days === 1) return { number: "מחר",  unit: "📅" };
+  if (days === 1) return { number: "מחר", unit: "📅" };
   return { number: days, unit: "ימים" };
 }
 
 function statusLabel(ev) {
   if (ev.status === "pending") return { text: "ממתין לאישור", cls: "pending" };
-  if (ev.status === "active")  return { text: "אושר",         cls: "active"  };
+  if (ev.status === "active") return { text: "אושר", cls: "active" };
   return { text: ev.status, cls: "pending" };
 }
 
 export default function CustomerDashboard({ user }) {
   const navigate = useNavigate();
-  const [events,  setEvents]  = useState([]);
+  const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
     fetch(`${API}/customer`, { headers: { Authorization: `Bearer ${token}` } })
       .then((r) => r.json())
-      .then((data) => { if (data.events) setEvents(data.events); })
+      .then((data) => {
+        if (data.events) setEvents(data.events);
+      })
       .catch((err) => console.error(err))
       .finally(() => setLoading(false));
   }, []);
 
-  // Upcoming = future date + not declined
+  // אירועים קרבים וקיימים
   const upcoming = events
     .filter((e) => e.status !== "declined" && daysUntil(e.date) >= 0)
     .sort((a, b) => new Date(a.date) - new Date(b.date));
 
-  const nearest      = upcoming[0]   || null;
+  const nearest = upcoming[0] || null;
   const otherUpcoming = upcoming.slice(1, 4);
 
-  const totalPast    = events.filter((e) => e.status === "active" && daysUntil(e.date) < 0).length;
+  const totalPast = events.filter(
+    (e) => e.status === "active" && daysUntil(e.date) < 0,
+  ).length;
   const totalPending = events.filter((e) => e.status === "pending").length;
 
   return (
     <div className={styles.page}>
-      {/* Greeting */}
       <div className={styles.greeting}>
         שלום, {user?.username || user?.userName} 👋
       </div>
       <div className={styles.subtitle}>
-        {loading ? "טוען..." : upcoming.length === 0
-          ? "אין לך אירועים קרובים כרגע"
-          : `יש לך ${upcoming.length} אירוע${upcoming.length > 1 ? "ים" : ""} קרוב${upcoming.length > 1 ? "ים" : ""}`
-        }
+        {loading
+          ? "טוען..."
+          : upcoming.length === 0
+            ? "אין לך אירועים קרובים כרגע"
+            : `יש לך ${upcoming.length} אירוע${upcoming.length > 1 ? "ים" : ""} קרוב${upcoming.length > 1 ? "ים" : ""}`}
       </div>
-
-      {/* Quick stats */}
+      {/* נתונים קלים על אירוע*/}
       {!loading && events.length > 0 && (
         <div className={styles.statsRow}>
           {[
-            { icon: "📋", value: events.length,  label: "סה״כ אירועים" },
-            { icon: "⏳", value: totalPending,   label: "ממתינים לאישור" },
+            { icon: "📋", value: events.length, label: "סה״כ אירועים" },
+            { icon: "⏳", value: totalPending, label: "ממתינים לאישור" },
             { icon: "📅", value: upcoming.length, label: "אירועים קרובים" },
-            { icon: "✅", value: totalPast,       label: "הושלמו" },
+            { icon: "✅", value: totalPast, label: "הושלמו" },
           ].map((s, i) => (
-            <div key={i} className={styles.statCube} onClick={() => navigate("/customer/events")} style={{ cursor: "pointer" }}>
+            <div
+              key={i}
+              className={styles.statCube}
+              onClick={() => navigate("/customer/events")}
+              style={{ cursor: "pointer" }}
+            >
               <div className={styles.statIcon}>{s.icon}</div>
               <div className={styles.statValue}>{s.value}</div>
               <div className={styles.statLabel}>{s.label}</div>
@@ -93,8 +107,7 @@ export default function CustomerDashboard({ user }) {
           ))}
         </div>
       )}
-
-      {/* No upcoming events */}
+      {/* אם אין אירועים*/}
       {!loading && upcoming.length === 0 && (
         <div className={styles.emptyCard}>
           <div className={styles.emptyIllustration}>📷</div>
@@ -112,69 +125,85 @@ export default function CustomerDashboard({ user }) {
           </button>
         </div>
       )}
-
-      {/* Nearest event — big countdown card */}
-      {!loading && nearest && (() => {
-        const days    = daysUntil(nearest.date);
-        const cd      = countdownLabel(days);
-        const { text: sText, cls: sCls } = statusLabel(nearest);
-        return (
-          <div className={styles.mainCard}>
-            <div className={styles.mainCardLeft}>
-              <div className={styles.countdownBox}>
-                <div className={styles.countdownNumber}>{cd.number}</div>
-                <div className={styles.countdownUnit}>{cd.unit}</div>
+      {/* אירוע הקרוב ביותר*/}
+      {!loading &&
+        nearest &&
+        (() => {
+          const days = daysUntil(nearest.date);
+          const cd = countdownLabel(days);
+          const { text: sText, cls: sCls } = statusLabel(nearest);
+          return (
+            <div className={styles.mainCard}>
+              <div className={styles.mainCardLeft}>
+                <div className={styles.countdownBox}>
+                  <div className={styles.countdownNumber}>{cd.number}</div>
+                  <div className={styles.countdownUnit}>{cd.unit}</div>
+                </div>
+                <div className={styles.countdownCaption}>עד האירוע הבא</div>
               </div>
-              <div className={styles.countdownCaption}>עד האירוע הבא</div>
+
+              <div className={styles.mainCardRight}>
+                <div className={styles.mainEventHeader}>
+                  <span className={styles.mainEventIcon}>
+                    {getIcon(nearest.name)}
+                  </span>
+                  <span className={styles.mainEventName}>{nearest.name}</span>
+                  <span
+                    className={`${styles.statusPill} ${styles[`pill_${sCls}`]}`}
+                  >
+                    {sText}
+                  </span>
+                </div>
+
+                <div className={styles.mainEventDetails}>
+                  <div className={styles.detailRow}>
+                    <span className={styles.detailIcon}>📅</span>
+                    <span className={styles.detailValue}>
+                      {formatDate(nearest.date)}
+                    </span>
+                  </div>
+                  <div className={styles.detailRow}>
+                    <span className={styles.detailIcon}>📍</span>
+                    <span className={styles.detailValue}>{nearest.place}</span>
+                  </div>
+                  <div className={styles.detailRow}>
+                    <span className={styles.detailIcon}>📷</span>
+                    <span className={styles.detailValue}>
+                      {nearest.photographerName}
+                    </span>
+                  </div>
+                </div>
+
+                <button
+                  className={styles.viewEventBtn}
+                  onClick={() => navigate("/customer/events")}
+                >
+                  צפה בכל האירועים ←
+                </button>
+              </div>
             </div>
-
-            <div className={styles.mainCardRight}>
-              <div className={styles.mainEventHeader}>
-                <span className={styles.mainEventIcon}>{getIcon(nearest.name)}</span>
-                <span className={styles.mainEventName}>{nearest.name}</span>
-                <span className={`${styles.statusPill} ${styles[`pill_${sCls}`]}`}>{sText}</span>
-              </div>
-
-              <div className={styles.mainEventDetails}>
-                <div className={styles.detailRow}>
-                  <span className={styles.detailIcon}>📅</span>
-                  <span className={styles.detailValue}>{formatDate(nearest.date)}</span>
-                </div>
-                <div className={styles.detailRow}>
-                  <span className={styles.detailIcon}>📍</span>
-                  <span className={styles.detailValue}>{nearest.place}</span>
-                </div>
-                <div className={styles.detailRow}>
-                  <span className={styles.detailIcon}>📷</span>
-                  <span className={styles.detailValue}>{nearest.photographerName}</span>
-                </div>
-              </div>
-
-              <button
-                className={styles.viewEventBtn}
-                onClick={() => navigate("/customer/events")}
-              >
-                צפה בכל האירועים ←
-              </button>
-            </div>
-          </div>
-        );
-      })()}
-
-      {/* Other upcoming events — small cubes */}
+          );
+        })()}
+      {/*  אירועים נוספים קובייה קטנה*/}
       {!loading && otherUpcoming.length > 0 && (
         <>
           <div className={styles.sectionTitle}>אירועים נוספים</div>
           <div className={styles.cubesRow}>
             {otherUpcoming.map((ev) => {
               const days = daysUntil(ev.date);
-              const cd   = countdownLabel(days);
+              const cd = countdownLabel(days);
               const { text: sText, cls: sCls } = statusLabel(ev);
               return (
                 <div key={ev.id} className={styles.smallCube}>
                   <div className={styles.smallCubeTop}>
-                    <span className={styles.smallCubeIcon}>{getIcon(ev.name)}</span>
-                    <span className={`${styles.statusPill} ${styles[`pill_${sCls}`]}`}>{sText}</span>
+                    <span className={styles.smallCubeIcon}>
+                      {getIcon(ev.name)}
+                    </span>
+                    <span
+                      className={`${styles.statusPill} ${styles[`pill_${sCls}`]}`}
+                    >
+                      {sText}
+                    </span>
                   </div>
                   <div className={styles.smallCubeName}>{ev.name}</div>
                   <div className={styles.smallCubeCountdown}>

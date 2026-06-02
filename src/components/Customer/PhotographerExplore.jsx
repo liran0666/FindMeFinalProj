@@ -74,7 +74,6 @@ export function PhotographerExplore() {
 
   return (
     <div className={styles.page}>
-      {/* Hero */}
       <div className={styles.searchHero}>
         <h1 className={styles.searchHeroTitle}>
           מצא את הצלם <span>המושלם</span> לך
@@ -91,7 +90,7 @@ export function PhotographerExplore() {
         </div>
       </div>
 
-      {/* Filter + sort bar */}
+      
       <div className={styles.controlBar}>
         <button
           className={`${styles.filterToggleBtn} ${filtersOpen ? styles.filterToggleBtnActive : ""}`}
@@ -122,7 +121,7 @@ export function PhotographerExplore() {
         <span className={styles.resultsCount}>{filtered.length} צלמים</span>
       </div>
 
-      {/* Expandable filter panel */}
+      
       {filtersOpen && (
         <div className={styles.filterPanel}>
           <div className={styles.filterPanelGrid}>
@@ -178,7 +177,7 @@ export function PhotographerExplore() {
         </div>
       )}
 
-      {/* Grid */}
+      
       <div className={styles.grid}>
         {filtered.length === 0 ? (
           <div className={styles.emptyState}>
@@ -199,7 +198,7 @@ export function PhotographerExplore() {
     </div>
   );
 }
-
+//כרטיס צלם
 function PhotographerCard({ photographer: p, onClick }) {
   return (
     <div className={styles.card} onClick={onClick}>

@@ -5,7 +5,7 @@ dotenv.config();
 
 
 let instance = null;
-
+//פונקציה להתחברות למסד הנתונים
 function getDB() {
   if (!instance) {
     instance = mysql.createPool({

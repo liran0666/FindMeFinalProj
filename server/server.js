@@ -32,11 +32,11 @@ app.use((err, req, res, _next) => {
   console.error("Unhandled error:", err.message);
   res.status(err.status || err.statusCode || 500).json({ message: err.message || "Server error." });
 });
-
+// שימוש בפונקציה של db.js לקבלת מסד הנתונים ופתיחת שרת
 async function startServer() {
   try {
     const db = getDB();
-    await db.query("SELECT 1"); // lightweight ping
+    await db.query("SELECT 1"); 
     console.log("✅ MySQL connected successfully");
 
     app.listen(PORT, () => {
@@ -44,7 +44,7 @@ async function startServer() {
     });
   } catch (err) {
     console.error("❌ Failed to connect to MySQL:", err.message);
-    process.exit(1); // stop the server if DB is unreachable
+    process.exit(1); 
   }
 }
 
