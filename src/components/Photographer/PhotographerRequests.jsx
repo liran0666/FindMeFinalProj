@@ -6,7 +6,10 @@ import styles from "./PhotographerDashboard.module.css";
 const API = "http://localhost:5000/api/events";
 
 const EVENT_ICONS = {
-  חתונה: "💍", "בר מצווה": "✡️", "יום הולדת": "🎂", אחר: "📸",
+  חתונה: "💍",
+  "בר מצווה": "✡️",
+  "יום הולדת": "🎂",
+  אחר: "📸",
 };
 function getEventIcon(type) {
   const match = Object.entries(EVENT_ICONS).find(([k]) => type?.includes(k));
@@ -20,7 +23,9 @@ export function PhotographerRequests() {
 
   const fetchRequests = () => {
     const token = localStorage.getItem("token");
-    fetch(`${API}/photographer`, { headers: { Authorization: `Bearer ${token}` } })
+    fetch(`${API}/photographer`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
       .then((r) => r.json())
       .then((data) => {
         if (data.events)
@@ -30,14 +35,19 @@ export function PhotographerRequests() {
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { fetchRequests(); }, []);
+  useEffect(() => {
+    fetchRequests();
+  }, []);
 
   const handleAction = async (id, action) => {
     const token = localStorage.getItem("token");
     try {
       await fetch(`${API}/${id}/status`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({ status: action }),
       });
       setRequests((prev) => prev.filter((r) => r.id !== id));
@@ -63,7 +73,9 @@ export function PhotographerRequests() {
           <div className={styles.emptyState}>
             <div className={styles.emptyIcon}>📭</div>
             <div className={styles.emptyTitle}>אין בקשות ממתינות</div>
-            <div className={styles.emptySubtitle}>כשלקוחות ישלחו בקשות הן יופיעו כאן</div>
+            <div className={styles.emptySubtitle}>
+              כשלקוחות ישלחו בקשות הן יופיעו כאן
+            </div>
           </div>
         ) : (
           <div className={styles.proposalsList}>
@@ -109,13 +121,29 @@ function RequestCard({ request: r, onAction, onDetails }) {
         <div className={styles.proposalMeta}>
           <span className={styles.proposalMetaItem}>📅 {dateStr}</span>
           <span className={styles.proposalMetaItem}>📍 {r.place}</span>
-          {r.customerName && <span className={styles.proposalMetaItem}>👤 {r.customerName}</span>}
+          {r.customerName && (
+            <span className={styles.proposalMetaItem}>👤 {r.customerName}</span>
+          )}
         </div>
       </div>
       <div className={styles.proposalActions}>
-        <button className={styles.viewBtn} onClick={onDetails} disabled={busy}>פרטים</button>
-        <button className={styles.acceptBtn} onClick={() => act("active")} disabled={busy}>✓ קבל</button>
-        <button className={styles.declineBtn} onClick={() => act("declined")} disabled={busy}>✕ דחה</button>
+        <button className={styles.viewBtn} onClick={onDetails} disabled={busy}>
+          פרטים
+        </button>
+        <button
+          className={styles.acceptBtn}
+          onClick={() => act("active")}
+          disabled={busy}
+        >
+          ✓ קבל
+        </button>
+        <button
+          className={styles.declineBtn}
+          onClick={() => act("declined")}
+          disabled={busy}
+        >
+          ✕ דחה
+        </button>
       </div>
     </div>
   );
@@ -135,16 +163,19 @@ function RequestDetailsModal({ event: ev, onClose, onAction }) {
   return (
     <div className={styles.modalOverlay} onClick={onClose}>
       <div className={styles.modalBox} onClick={(e) => e.stopPropagation()}>
-        <button className={styles.modalClose} onClick={onClose}>✕</button>
+        <button className={styles.modalClose} onClick={onClose}>
+          ✕
+        </button>
 
         <div className={styles.modalIcon}>{getEventIcon(ev.name)}</div>
         <h2 className={styles.modalTitle}>{ev.name}</h2>
 
         <div className={styles.modalDetails}>
           {[
-            { label: "📅 תאריך",  value: dateStr },
-            { label: "📍 מיקום",  value: ev.place },
-            { label: "👤 לקוח",   value: ev.customerName || "—" },
+            { label: "📅 תאריך", value: dateStr },
+            { label: "📍 מיקום", value: ev.place },
+            { label: "👤 לקוח", value: ev.customerName || "—" },
+            { label: "📞 טלפון", value: ev.phone },
           ].map((row, i) => (
             <div key={i} className={styles.modalDetailRow}>
               <span className={styles.modalDetailLabel}>{row.label}</span>
@@ -153,7 +184,14 @@ function RequestDetailsModal({ event: ev, onClose, onAction }) {
           ))}
 
           {ev.notes && (
-            <div className={styles.modalDetailRow} style={{ flexDirection: "column", alignItems: "flex-start", gap: 6 }}>
+            <div
+              className={styles.modalDetailRow}
+              style={{
+                flexDirection: "column",
+                alignItems: "flex-start",
+                gap: 6,
+              }}
+            >
               <span className={styles.modalDetailLabel}>📝 הערות</span>
               <span className={styles.notesText}>{ev.notes}</span>
             </div>
@@ -161,10 +199,18 @@ function RequestDetailsModal({ event: ev, onClose, onAction }) {
         </div>
 
         <div className={styles.modalActionRow}>
-          <button className={styles.acceptBtn} onClick={() => act("active")} disabled={busy}>
+          <button
+            className={styles.acceptBtn}
+            onClick={() => act("active")}
+            disabled={busy}
+          >
             ✓ קבל אירוע
           </button>
-          <button className={styles.declineBtn} onClick={() => act("declined")} disabled={busy}>
+          <button
+            className={styles.declineBtn}
+            onClick={() => act("declined")}
+            disabled={busy}
+          >
             ✕ דחה אירוע
           </button>
         </div>

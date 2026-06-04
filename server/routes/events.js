@@ -151,7 +151,7 @@ router.get("/photographer", verifyToken, async (req, res) => {
     const db = getDB();
     const [rows] = await db.query(
       `SELECT e.id, e.name, e.date, e.place, e.status, e.notes,
-              c.userName AS customerName
+              c.userName AS customerName ,c.phone as phone
        FROM events e
        JOIN users c ON c.id = e.customer_id
        WHERE e.photographer_id = ?
@@ -171,7 +171,7 @@ router.get("/customer", verifyToken, async (req, res) => {
     const db = getDB();
     const [rows] = await db.query(
       `SELECT e.id, e.name, e.date, e.place, e.status, e.customer_rating, e.notes,
-              u.userName AS photographerName, u.id AS photographerId
+              u.userName AS photographerName, u.id AS photographerId 
        FROM events e
        JOIN users u ON u.id = e.photographer_id
        WHERE e.customer_id = ?

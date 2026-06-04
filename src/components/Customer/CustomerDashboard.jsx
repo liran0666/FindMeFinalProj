@@ -18,7 +18,7 @@ function getIcon(name) {
   const match = Object.entries(EVENT_ICONS).find(([k]) => name?.includes(k));
   return match ? match[1] : "📸";
 }
-
+// פונקציה חישובית המחזירה מספרר ימים מתאריך נתון
 function daysUntil(dateVal) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -31,7 +31,7 @@ function formatDate(dateVal) {
   const d = new Date(dateVal);
   return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
 }
-
+//פונקציה להחזרת ימים בפורמט יפה יותר
 function countdownLabel(days) {
   if (days === 0) return { number: "היום", unit: "🎉" };
   if (days === 1) return { number: "מחר", unit: "📅" };

@@ -5,8 +5,18 @@ import { useNavigate } from "react-router-dom";
 import styles from "./PhotographerDashboard.module.css";
 
 const HEBREW_MONTHS = [
-  "ינו", "פבר", "מרץ", "אפר", "מאי", "יוני",
-  "יולי", "אוג", "ספט", "אוק", "נוב", "דצמ",
+  "ינו",
+  "פבר",
+  "מרץ",
+  "אפר",
+  "מאי",
+  "יוני",
+  "יולי",
+  "אוג",
+  "ספט",
+  "אוק",
+  "נוב",
+  "דצמ",
 ];
 
 const EVENT_ICONS = {
@@ -41,10 +51,10 @@ const API = "http://localhost:5000/api/events";
 
 export function PhotographerDashboard({ user }) {
   const navigate = useNavigate();
-  const [requests, setRequests] = useState([]);   // status = "ממתין"
-  const [events, setEvents] = useState([]);        // status = "פעיל"
+  const [requests, setRequests] = useState([]); // status = "ממתין"
+  const [events, setEvents] = useState([]); // status = "פעיל"
   const [loading, setLoading] = useState(true);
-  const [selectedEvent,  setSelectedEvent]  = useState(null);
+  const [selectedEvent, setSelectedEvent] = useState(null);
   const [detailsRequest, setDetailsRequest] = useState(null);
 
   const fetchEvents = () => {
@@ -63,7 +73,9 @@ export function PhotographerDashboard({ user }) {
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { fetchEvents(); }, []);
+  useEffect(() => {
+    fetchEvents();
+  }, []);
 
   const handleAction = async (id, action) => {
     // פעולה של דחייה או אישור
@@ -89,15 +101,17 @@ export function PhotographerDashboard({ user }) {
   };
 
   // חלוקת אירועים לפי מצב
-  const pastEvents     = events.filter((e) => isPast(e.date));
-  const todayEvents    = events.filter((e) => isToday(e.date));
-  const upcomingEvents = events.filter((e) => !isPast(e.date) && !isToday(e.date));
+  const pastEvents = events.filter((e) => isPast(e.date));
+  const todayEvents = events.filter((e) => isToday(e.date));
+  const upcomingEvents = events.filter(
+    (e) => !isPast(e.date) && !isToday(e.date),
+  );
 
   const renderEventRow = (ev) => {
     const d = new Date(ev.date);
-    const day   = String(d.getDate()).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
     const month = HEBREW_MONTHS[d.getMonth()];
-    const past  = isPast(ev.date);
+    const past = isPast(ev.date);
     const today = isToday(ev.date);
 
     return (
@@ -122,7 +136,12 @@ export function PhotographerDashboard({ user }) {
           {past ? "הושלם" : today ? "היום" : "קרוב"}
         </span>
         <div className={styles.eventActions}>
-          <button className={styles.viewBtn} onClick={() => setSelectedEvent(ev)}>פרטים</button>
+          <button
+            className={styles.viewBtn}
+            onClick={() => setSelectedEvent(ev)}
+          >
+            פרטים
+          </button>
         </div>
       </div>
     );
@@ -135,15 +154,39 @@ export function PhotographerDashboard({ user }) {
       </div>
       <div className={styles.pageSubtitle}>הנה מה שקורה עם העסק שלך היום</div>
 
-      
       <div className={styles.summaryRow}>
         {[
-          { icon: "📩", value: requests.length,      label: "בקשות ממתינות",  to: "/photographer/requests" },
-          { icon: "📅", value: upcomingEvents.length, label: "אירועים קרובים",  to: "/photographer/events" },
-          { icon: "✅", value: pastEvents.length,     label: "אירועים שהושלמו", to: "/photographer/events" },
-          { icon: "📆", value: todayEvents.length,    label: "אירועים היום",    to: "/photographer/events" },
+          {
+            icon: "📩",
+            value: requests.length,
+            label: "בקשות ממתינות",
+            to: "/photographer/requests",
+          },
+          {
+            icon: "📅",
+            value: upcomingEvents.length,
+            label: "אירועים קרובים",
+            to: "/photographer/events",
+          },
+          {
+            icon: "✅",
+            value: pastEvents.length,
+            label: "אירועים שהושלמו",
+            to: "/photographer/events",
+          },
+          {
+            icon: "📆",
+            value: todayEvents.length,
+            label: "אירועים היום",
+            to: "/photographer/events",
+          },
         ].map((s, i) => (
-          <div key={i} className={styles.summaryCard} onClick={() => navigate(s.to)} style={{ cursor: "pointer" }}>
+          <div
+            key={i}
+            className={styles.summaryCard}
+            onClick={() => navigate(s.to)}
+            style={{ cursor: "pointer" }}
+          >
             <div className={styles.summaryCardIcon}>{s.icon}</div>
             <div className={styles.summaryCardValue}>{s.value}</div>
             <div className={styles.summaryCardLabel}>{s.label}</div>
@@ -151,7 +194,6 @@ export function PhotographerDashboard({ user }) {
         ))}
       </div>
 
-      
       <div className={styles.section}>
         <div className={styles.sectionHeader}>
           <div className={styles.sectionTitle}>
@@ -174,7 +216,12 @@ export function PhotographerDashboard({ user }) {
         ) : (
           <div className={styles.proposalsList}>
             {requests.map((r) => (
-              <RequestCard key={r.id} request={r} onAction={handleAction} onDetails={() => setDetailsRequest(r)} />
+              <RequestCard
+                key={r.id}
+                request={r}
+                onAction={handleAction}
+                onDetails={() => setDetailsRequest(r)}
+              />
             ))}
           </div>
         )}
@@ -184,7 +231,12 @@ export function PhotographerDashboard({ user }) {
       <div className={styles.section}>
         <div className={styles.sectionHeader}>
           <div className={styles.sectionTitle}>📅 אירועים</div>
-          <button className={styles.seeAllBtn} onClick={() => navigate("/photographer/events")}>כל האירועים ←</button>
+          <button
+            className={styles.seeAllBtn}
+            onClick={() => navigate("/photographer/events")}
+          >
+            כל האירועים ←
+          </button>
         </div>
 
         {loading ? (
@@ -201,32 +253,44 @@ export function PhotographerDashboard({ user }) {
             {todayEvents.length > 0 && (
               <>
                 <div className={styles.eventGroupLabel}>היום</div>
-                <div className={styles.eventsList}>{todayEvents.map(renderEventRow)}</div>
+                <div className={styles.eventsList}>
+                  {todayEvents.map(renderEventRow)}
+                </div>
               </>
             )}
             {upcomingEvents.length > 0 && (
               <>
                 <div className={styles.eventGroupLabel}>עתידיים</div>
-                <div className={styles.eventsList}>{upcomingEvents.map(renderEventRow)}</div>
+                <div className={styles.eventsList}>
+                  {upcomingEvents.map(renderEventRow)}
+                </div>
               </>
             )}
             {pastEvents.length > 0 && (
               <>
                 <div className={styles.eventGroupLabel}>הושלמו</div>
-                <div className={styles.eventsList}>{pastEvents.map(renderEventRow)}</div>
+                <div className={styles.eventsList}>
+                  {pastEvents.map(renderEventRow)}
+                </div>
               </>
             )}
           </>
         )}
       </div>
       {selectedEvent && (
-        <EventDetailsModal event={selectedEvent} onClose={() => setSelectedEvent(null)} />
+        <EventDetailsModal
+          event={selectedEvent}
+          onClose={() => setSelectedEvent(null)}
+        />
       )}
       {detailsRequest && (
         <RequestDetailsModal
           event={detailsRequest}
           onClose={() => setDetailsRequest(null)}
-          onAction={async (id, action) => { await handleAction(id, action); setDetailsRequest(null); }}
+          onAction={async (id, action) => {
+            await handleAction(id, action);
+            setDetailsRequest(null);
+          }}
         />
       )}
     </div>
@@ -235,11 +299,13 @@ export function PhotographerDashboard({ user }) {
 //פרטים של אירוע
 function EventDetailsModal({ event, onClose }) {
   const d = new Date(event.date);
-  const dateStr = `${String(d.getDate()).padStart(2,"0")}/${String(d.getMonth()+1).padStart(2,"0")}/${d.getFullYear()}`;
+  const dateStr = `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
   return (
     <div className={styles.modalOverlay} onClick={onClose}>
       <div className={styles.modalBox} onClick={(e) => e.stopPropagation()}>
-        <button className={styles.modalClose} onClick={onClose}>✕</button>
+        <button className={styles.modalClose} onClick={onClose}>
+          ✕
+        </button>
         <div className={styles.modalIcon}>{getEventIcon(event.name)}</div>
         <h2 className={styles.modalTitle}>{event.name}</h2>
         <div className={styles.modalDetails}>
@@ -253,10 +319,23 @@ function EventDetailsModal({ event, onClose }) {
           </div>
           <div className={styles.modalDetailRow}>
             <span className={styles.modalDetailLabel}>👤 לקוח</span>
-            <span className={styles.modalDetailValue}>{event.customerName || "—"}</span>
+            <span className={styles.modalDetailValue}>
+              {event.customerName || "—"}
+            </span>
+          </div>
+          <div className={styles.modalDetailRow}>
+            <span className={styles.modalDetailLabel}>📞 טלפון</span>
+            <span className={styles.modalDetailValue}>{event.phone}</span>
           </div>
           {event.notes && (
-            <div className={styles.modalDetailRow} style={{ flexDirection: "column", alignItems: "flex-start", gap: 6 }}>
+            <div
+              className={styles.modalDetailRow}
+              style={{
+                flexDirection: "column",
+                alignItems: "flex-start",
+                gap: 6,
+              }}
+            >
               <span className={styles.modalDetailLabel}>📝 הערות</span>
               <span className={styles.notesText}>{event.notes}</span>
             </div>
@@ -270,7 +349,7 @@ function EventDetailsModal({ event, onClose }) {
 function RequestCard({ request: r, onAction, onDetails }) {
   const [busy, setBusy] = useState(false);
   const d = new Date(r.date);
-  const dateStr = `${String(d.getDate()).padStart(2,"0")}/${String(d.getMonth()+1).padStart(2,"0")}/${d.getFullYear()}`;
+  const dateStr = `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
 
   const act = async (status) => {
     setBusy(true);
@@ -286,13 +365,29 @@ function RequestCard({ request: r, onAction, onDetails }) {
         <div className={styles.proposalMeta}>
           <span className={styles.proposalMetaItem}>📅 {dateStr}</span>
           <span className={styles.proposalMetaItem}>📍 {r.place}</span>
-          {r.customerName && <span className={styles.proposalMetaItem}>👤 {r.customerName}</span>}
+          {r.customerName && (
+            <span className={styles.proposalMetaItem}>👤 {r.customerName}</span>
+          )}
         </div>
       </div>
       <div className={styles.proposalActions}>
-        <button className={styles.viewBtn}    onClick={onDetails}           disabled={busy}>פרטים</button>
-        <button className={styles.acceptBtn}  onClick={() => act("active")} disabled={busy}>✓ קבל</button>
-        <button className={styles.declineBtn} onClick={() => act("declined")} disabled={busy}>✕ דחה</button>
+        <button className={styles.viewBtn} onClick={onDetails} disabled={busy}>
+          פרטים
+        </button>
+        <button
+          className={styles.acceptBtn}
+          onClick={() => act("active")}
+          disabled={busy}
+        >
+          ✓ קבל
+        </button>
+        <button
+          className={styles.declineBtn}
+          onClick={() => act("declined")}
+          disabled={busy}
+        >
+          ✕ דחה
+        </button>
       </div>
     </div>
   );
@@ -301,7 +396,7 @@ function RequestCard({ request: r, onAction, onDetails }) {
 function RequestDetailsModal({ event: ev, onClose, onAction }) {
   const [busy, setBusy] = useState(false);
   const d = new Date(ev.date);
-  const dateStr = `${String(d.getDate()).padStart(2,"0")}/${String(d.getMonth()+1).padStart(2,"0")}/${d.getFullYear()}`;
+  const dateStr = `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
 
   const act = async (status) => {
     setBusy(true);
@@ -312,14 +407,17 @@ function RequestDetailsModal({ event: ev, onClose, onAction }) {
   return (
     <div className={styles.modalOverlay} onClick={onClose}>
       <div className={styles.modalBox} onClick={(e) => e.stopPropagation()}>
-        <button className={styles.modalClose} onClick={onClose}>✕</button>
+        <button className={styles.modalClose} onClick={onClose}>
+          ✕
+        </button>
         <div className={styles.modalIcon}>{getEventIcon(ev.name)}</div>
         <h2 className={styles.modalTitle}>{ev.name}</h2>
         <div className={styles.modalDetails}>
           {[
             { label: "📅 תאריך", value: dateStr },
-            { label: "📍 מיקום",  value: ev.place },
-            { label: "👤 לקוח",   value: ev.customerName || "—" },
+            { label: "📍 מיקום", value: ev.place },
+            { label: "👤 לקוח", value: ev.customerName || "—" },
+            { label: "📞 טלפון", value: ev.phone },
           ].map((row, i) => (
             <div key={i} className={styles.modalDetailRow}>
               <span className={styles.modalDetailLabel}>{row.label}</span>
@@ -327,15 +425,34 @@ function RequestDetailsModal({ event: ev, onClose, onAction }) {
             </div>
           ))}
           {ev.notes && (
-            <div className={styles.modalDetailRow} style={{ flexDirection: "column", alignItems: "flex-start", gap: 6 }}>
+            <div
+              className={styles.modalDetailRow}
+              style={{
+                flexDirection: "column",
+                alignItems: "flex-start",
+                gap: 6,
+              }}
+            >
               <span className={styles.modalDetailLabel}>📝 הערות</span>
               <span className={styles.notesText}>{ev.notes}</span>
             </div>
           )}
         </div>
         <div className={styles.modalActionRow}>
-          <button className={styles.acceptBtn}  onClick={() => act("active")}    disabled={busy}>✓ קבל אירוע</button>
-          <button className={styles.declineBtn} onClick={() => act("declined")} disabled={busy}>✕ דחה אירוע</button>
+          <button
+            className={styles.acceptBtn}
+            onClick={() => act("active")}
+            disabled={busy}
+          >
+            ✓ קבל אירוע
+          </button>
+          <button
+            className={styles.declineBtn}
+            onClick={() => act("declined")}
+            disabled={busy}
+          >
+            ✕ דחה אירוע
+          </button>
         </div>
       </div>
     </div>
