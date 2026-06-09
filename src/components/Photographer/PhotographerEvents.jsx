@@ -88,6 +88,11 @@ export function PhotographerEvents() {
     setSelectedEvent((prev) => (prev ? { ...prev, ...updated } : null));
   };
 
+  const handleRemove = (id) => {
+    setEvents((prev) => prev.filter((e) => e.id !== id));
+    setSelectedEvent(null);
+  };
+
   const pastEvents = events.filter((e) => isPast(e.date));
   const todayEvents = events.filter((e) => isToday(e.date));
   const upcomingEvents = events.filter(
@@ -194,13 +199,14 @@ export function PhotographerEvents() {
           onClose={() => setSelectedEvent(null)}
           onGallery={(id) => navigate(`/photographer/gallery/${id}`)}
           onUpdate={handleUpdate}
+          onRemove={handleRemove}
         />
       )}
     </div>
   );
 }
 //פרטים של אירוע
-function EventDetailsModal({ event, onClose, onGallery, onUpdate }) {
+function EventDetailsModal({ event, onClose, onGallery, onUpdate, onRemove }) {
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({
     name: event.name || "",
@@ -227,6 +233,10 @@ function EventDetailsModal({ event, onClose, onGallery, onUpdate }) {
       setError("נא למלא סוג אירוע, תאריך ומיקום.");
       return;
     }
+    if (new Date(form.date) <= new Date()) {
+      setError("תאריך חייב להיות מאוחר מהיום");
+      return;
+    }
     setSaving(true);
     setError("");
     try {
@@ -247,6 +257,32 @@ function EventDetailsModal({ event, onClose, onGallery, onUpdate }) {
       setError(err.message);
     } finally {
       setSaving(false);
+      alert("הפרטים שונו בהצלחה");
+    }
+  };
+  const cancelEvent = async () => {
+    let answer=confirm("האם יידעת את הלקוח על ביטול אירוע זה?");
+    if(!answer)
+      return;
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API}/${event.id}/cancel`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(form),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "שגיאה בביטול.");
+      alert("האירוע בוטל בהצלחה");
+      onRemove(event.id);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+      
     }
   };
 
@@ -335,6 +371,13 @@ function EventDetailsModal({ event, onClose, onGallery, onUpdate }) {
                 disabled={saving}
               >
                 {saving ? "שומר..." : "💾 שמור"}
+              </button>
+              <button
+                className={styles.galleryModalBtn}
+                onClick={cancelEvent}
+                disabled={saving}
+              >
+                {saving ? "מבטל..." : "X בטל אירוע"}
               </button>
             </div>
           </div>

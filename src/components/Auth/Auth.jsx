@@ -111,7 +111,7 @@ export function RegisterPage({ onRegister }) {
   const [profilePicPreview, setProfilePicPreview] = useState(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-
+  const [showTerms, setShowTerms] = useState(false);
 
   useEffect(() => {
     return () => {
@@ -153,8 +153,8 @@ export function RegisterPage({ onRegister }) {
     });
   };
 
-  const handleSubmit = async () => {
-    if (!form.username || !form.email || !form.password||!form.phone) {
+  const handleSubmit = () => {
+    if (!form.username || !form.email || !form.password || !form.phone) {
       setError("אנא מלא את כל השדות החובה");
       return;
     }
@@ -170,9 +170,8 @@ export function RegisterPage({ onRegister }) {
       setError("הסיסמאות אינן תואמות");
       return;
     }
-    if(form.phone.length<10||!form.phone.startsWith("05")||isNaN(form.phone))
-    {
-      setError("מספר טלפון לא תקין")
+    if (form.phone.length < 10 || !form.phone.startsWith("05") || isNaN(form.phone)) {
+      setError("מספר טלפון לא תקין");
       return;
     }
     if (role === "photographer" && selectedServices.length === 0) {
@@ -180,6 +179,11 @@ export function RegisterPage({ onRegister }) {
       return;
     }
     setError("");
+    setShowTerms(true);
+  };
+
+  const handleAgreeTerms = async () => {
+    setShowTerms(false);
     setBusy(true);
     try {
       const { confirmPassword, ...payload } = form;
@@ -438,6 +442,13 @@ export function RegisterPage({ onRegister }) {
           </p>
         </div>
       </div>
+
+      {showTerms && (
+        <TermsModal
+          onAgree={handleAgreeTerms}
+          onDecline={() => setShowTerms(false)}
+        />
+      )}
     </div>
   );
 }
@@ -516,6 +527,37 @@ export function ResetPasswordPage() {
             חזרה להתחברות
           </span>
         </p>
+      </div>
+    </div>
+  );
+}
+
+function TermsModal({ onAgree, onDecline }) {
+  return (
+    <div className={styles.termsOverlay}>
+      <div className={styles.termsBox}>
+        <h2 className={styles.termsTitle}>תנאי שימוש</h2>
+        <div className={styles.termsBody}>
+          <p>ברוכים הבאים ל-FindMe. לפני ההרשמה, קרא את תנאי השימוש הבאים:</p>
+          <ol>
+            <li>המשתמש מסכים לספק פרטים אמיתיים ומדויקים בעת ההרשמה.</li>
+            <li>חל איסור להשתמש בפלטפורמה לצורכי הונאה, פגיעה באחרים, או כל שימוש בלתי חוקי.</li>
+            <li>FindMe שומרת לעצמה את הזכות להסיר חשבונות המפרים את תנאי השימוש.</li>
+            <li>תמונות ותכנים שהועלו הם באחריות המשתמש בלבד.</li>
+            <li>FindMe אינה אחראית לתוכן שפורסם על-ידי משתמשים.</li>
+            <li>המשתמש מסכים לקבל הודעות מערכת הקשורות לפעילותו בפלטפורמה.</li>
+            <li>המידע האישי מאוחסן בצורה מאובטחת ולא יועבר לצד שלישי ללא הסכמה.</li>
+          </ol>
+          <p>בלחיצה על "אני מסכים/ה" אתה מאשר שקראת והבנת את תנאי השימוש.</p>
+        </div>
+        <div className={styles.termsBtns}>
+          <button className={styles.termsDeclineBtn} onClick={onDecline}>
+            דחייה
+          </button>
+          <button className={styles.termsAgreeBtn} onClick={onAgree}>
+            אני מסכים/ה
+          </button>
+        </div>
       </div>
     </div>
   );

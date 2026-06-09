@@ -4,7 +4,38 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
+import nodemailer from "nodemailer";
 import getDB from "../db.js";
+// מייל ללקוח שבוטל לו האירוע
+async function sendDeclinedEmail(
+  customerEmail,
+  customerName,
+  eventName,
+  eventDate,
+) {
+  const transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+  });
+  const dateStr = new Date(eventDate).toLocaleDateString("he-IL");
+  await transporter.sendMail({
+    from: `"FindMe" <${process.env.SMTP_USER}>`,
+    to: customerEmail,
+    subject: "עדכון על אירוע שלך - FindMe",
+    html: `
+      <div dir="rtl" style="font-family:Arial,sans-serif;max-width:480px;margin:auto;background:#0d1f38;color:#eaf6ff;padding:32px;border-radius:12px">
+        <h2 style="color:#64b5f6;margin-bottom:8px">FindMe</h2>
+        <p>שלום ${customerName},</p>
+        <p>אנו מצטערים ליידע אותך שהאירוע הבא <strong>בוטל</strong> על ידי הצלם:</p>
+        <div style="background:#132840;border:1px solid rgba(100,181,246,0.3);border-radius:8px;padding:16px;margin:16px 0">
+          <p style="margin:4px 0">🎉 <strong>סוג אירוע:</strong> ${eventName}</p>
+          <p style="margin:4px 0">📅 <strong>תאריך:</strong> ${dateStr}</p>
+        </div>
+        <p>אנא חפש/י צלם חלופי באתר FindMe.</p>
+        <p style="color:#6a90b0;font-size:12px;margin-top:24px">הודעה זו נשלחה אוטומטית ממערכת FindMe</p>
+      </div>`,
+  });
+}
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -292,7 +323,38 @@ router.patch("/:id/details", verifyToken, async (req, res) => {
     return res.status(500).json({ message: "Server error." });
   }
 });
+//ביטול אירוע על ידי צלם
+router.patch("/:id/cancel", verifyToken, async (req, res) => {
+  try {
+    const db = getDB();
+    const [rows] = await db.query(
+      `SELECT e.name, e.date, c.email AS customerEmail, c.userName AS customerName
+       FROM events e JOIN users c ON c.id = e.customer_id
+       WHERE e.id = ? AND e.photographer_id = ?`,
+      [req.params.id, req.user.id],
+    );
+    if (!rows.length)
+      return res.status(404).json({ message: "Event not found." });
 
+    const [result] = await db.query(
+      "UPDATE events SET status=? WHERE id = ? AND photographer_id = ?",
+      ["declined", req.params.id, req.user.id],
+    );
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: "Event not found." });
+    }
+
+    const { customerEmail, customerName, name, date } = rows[0];
+    sendDeclinedEmail(customerEmail, customerName, name, date).catch((err) =>
+      console.error("Cancel email error:", err),
+    );
+
+    return res.json({ success: true });
+  } catch (err) {
+    console.error("Event cancel error:", err);
+    return res.status(500).json({ message: "Server error." });
+  }
+});
 //אישור או דחייה של אירוע מצד הצלם
 router.patch("/:id/status", verifyToken, async (req, res) => {
   const { status } = req.body;
@@ -301,6 +363,18 @@ router.patch("/:id/status", verifyToken, async (req, res) => {
   }
   try {
     const db = getDB();
+
+    let eventRow = null;
+    if (status === "declined") {
+      const [rows] = await db.query(
+        `SELECT e.name, e.date, c.email AS customerEmail, c.userName AS customerName
+         FROM events e JOIN users c ON c.id = e.customer_id
+         WHERE e.id = ? AND e.photographer_id = ?`,
+        [req.params.id, req.user.id],
+      );
+      if (rows.length) eventRow = rows[0];
+    }
+
     const [result] = await db.query(
       "UPDATE events SET status = ? WHERE id = ? AND photographer_id = ?",
       [status, req.params.id, req.user.id],
@@ -308,6 +382,16 @@ router.patch("/:id/status", verifyToken, async (req, res) => {
     if (result.affectedRows === 0) {
       return res.status(404).json({ message: "Event not found." });
     }
+
+    if (status === "declined" && eventRow) {
+      sendDeclinedEmail(
+        eventRow.customerEmail,
+        eventRow.customerName,
+        eventRow.name,
+        eventRow.date,
+      ).catch((err) => console.error("Decline email error:", err));
+    }
+
     return res.json({ success: true });
   } catch (err) {
     console.error("Event status update error:", err);
@@ -336,11 +420,9 @@ router.post(
       const FACEPP_API_KEY = process.env.FACEPP_API_KEY;
       const FACEPP_API_SECRET = process.env.FACEPP_API_SECRET;
       if (!FACEPP_API_KEY || !FACEPP_API_SECRET) {
-        return res
-          .status(500)
-          .json({
-            message: "Face++ API credentials not configured on server.",
-          });
+        return res.status(500).json({
+          message: "Face++ API credentials not configured on server.",
+        });
       }
 
       const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -409,7 +491,6 @@ router.post(
       );
       if (!fs.existsSync(photoDir)) return res.json({ photos: [], total: 0 });
 
-      
       const photoFiles = fs
         .readdirSync(photoDir)
         .filter((f) => /\.(jpe?g|png|gif|bmp)$/i.test(f))
@@ -546,7 +627,6 @@ router.delete("/:id/photos/:filename", verifyToken, async (req, res) => {
     if (!rows.length)
       return res.status(403).json({ message: "Not authorized." });
 
-   
     const safeDir = path.resolve(
       __dirname,
       "../uploads/events",

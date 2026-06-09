@@ -8,6 +8,8 @@ import { useState, useEffect, useRef } from "react";
 
 import { LoginPage, RegisterPage, ResetPasswordPage } from "../Auth/Auth";
 import { Navbar } from "../Layout/Navbar.jsx";
+import { AccessibilityWidget } from "../Accessibility/AccessibilityWidget.jsx";
+import { AccessibilityStatement } from "../Accessibility/AccessibilityStatement.jsx";
 
 import CustomerRoutes from "../../Routes/CustomerRoutes.jsx";
 import PhotographerRoutes from "../../Routes/PhotographerRoutes";
@@ -78,6 +80,7 @@ export default function App() {
   return (
     <Router>
       {user && <Navbar user={user} onLogout={handleLogout} />}
+      <AccessibilityWidget />
       <Routes>
         <Route
           path="/login"
@@ -140,6 +143,7 @@ export default function App() {
             )
           }
         />
+        <Route path="/accessibility" element={<AccessibilityStatement />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>

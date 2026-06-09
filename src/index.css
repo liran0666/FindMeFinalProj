@@ -98,3 +98,34 @@ a { color: inherit; text-decoration: none; }
 button { cursor: pointer; font-family: var(--font-body); }
 img { display: block; max-width: 100%; }
 input, textarea, select { font-family: var(--font-body); }
+
+/* ── Accessibility modes ─────────────────────────────────────────────── */
+html.a11y-large-text body { zoom: 1.3; }
+
+html.a11y-high-contrast {
+  --bg-primary:    #000000;
+  --bg-secondary:  #0a0a0a;
+  --bg-card:       #111111;
+  --bg-card-hover: #1a1a1a;
+  --text-primary:  #ffffff;
+  --text-secondary:#ffff00;
+  --text-muted:    #cccccc;
+  --border:        #ffffff;
+  --border-bright: #ffffff;
+  --blue-400:      #00d4ff;
+  --blue-300:      #80eaff;
+}
+
+html.a11y-grayscale body { filter: grayscale(100%); }
+
+html.a11y-underline-links a { text-decoration: underline !important; }
+
+html.a11y-readable-font *,
+html.a11y-readable-font input,
+html.a11y-readable-font textarea,
+html.a11y-readable-font select {
+  font-family: Arial, Helvetica, sans-serif !important;
+  letter-spacing: 0.04em !important;
+  line-height: 1.9 !important;
+  word-spacing: 0.1em !important;
+}
