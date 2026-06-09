@@ -7,28 +7,61 @@ const MONTH_LABELS = ["ינו","פבר","מרץ","אפר","מאי","יוני","�
 
 const API = "http://localhost:5000/api/events";
 
+const MAX_YEARS = 3;
+
+function addYears(dateStr, years) {
+  const d = new Date(dateStr + "T00:00:00");
+  d.setFullYear(d.getFullYear() + years);
+  return d.toISOString().split("T")[0];
+}
+
+function generateMonthSlots(from, to) {
+  const slots = [];
+  const start = new Date(from + "T00:00:00");
+  const end = new Date(to + "T00:00:00");
+  start.setDate(1);
+  end.setDate(1);
+  let cur = new Date(start);
+  while (cur <= end) {
+    slots.push({ year: cur.getFullYear(), month: cur.getMonth() + 1 });
+    cur.setMonth(cur.getMonth() + 1);
+  }
+  return slots;
+}
+
 export function StatsPage({ user }) {
-  const currentYear = new Date().getFullYear();
-  const [period, setPeriod] = useState(String(currentYear));
+  const today = new Date();
+  const currentYear = today.getFullYear();
+  const todayStr = today.toISOString().split("T")[0];
+
+  const [fromDate, setFromDate] = useState(`${currentYear}-01-01`);
+  const [toDate, setToDate] = useState(todayStr);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
     setLoading(true);
-    fetch(`${API}/stats?year=${period}`, {
+    fetch(`${API}/stats?from=${fromDate}&to=${toDate}`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((r) => r.json())
       .then(setData)
       .catch((err) => console.error("Failed to load stats:", err))
       .finally(() => setLoading(false));
-  }, [period]);
+  }, [fromDate, toDate]);
 
-  // בניית מערך של חודשים
-  const monthlyData = MONTH_LABELS.map((label, i) => {
-    const found = data?.monthly?.find((m) => m.month === i + 1);
-    return { month: label, events: found ? Number(found.events) : 0 };
+  const slots = generateMonthSlots(fromDate, toDate);
+  const multiYear = slots.length > 0 && slots[slots.length - 1].year !== slots[0].year;
+
+  const monthlyData = slots.map((slot) => {
+    const found = data?.monthly?.find(
+      (m) => Number(m.year) === slot.year && Number(m.month) === slot.month
+    );
+    const label = multiYear
+      ? `${MONTH_LABELS[slot.month - 1]} ${String(slot.year).slice(2)}`
+      : MONTH_LABELS[slot.month - 1];
+    return { label, events: found ? Number(found.events) : 0 };
   });
 
   const totalEvents = monthlyData.reduce((s, d) => s + d.events, 0);
@@ -42,24 +75,47 @@ export function StatsPage({ user }) {
   );
   const rating = data?.rating ?? 0;
 
-  const years = [];
-  for (let y = currentYear; y >= currentYear - 2; y--) years.push(String(y));
-
   return (
     <div className={styles.page}>
       <div className={styles.pageTitle}>📊 סטטיסטיקות</div>
       <div className={styles.pageSubtitle}>מבט על על הפעילות שלך</div>
 
-      <div className={styles.periodSelector}>
-        {years.map((y) => (
-          <button
-            key={y}
-            className={`${styles.periodBtn} ${period === y ? styles.active : ""}`}
-            onClick={() => setPeriod(y)}
-          >
-            {y}
-          </button>
-        ))}
+      <div className={styles.dateRangeSelector}>
+        <div className={styles.dateField}>
+          <label className={styles.dateLabel}>מתאריך</label>
+          <input
+            type="date"
+            className={styles.dateInput}
+            value={fromDate}
+            min={addYears(toDate, -MAX_YEARS)}
+            max={toDate}
+            onChange={(e) => {
+              const next = e.target.value;
+              setFromDate(next);
+              if (toDate > addYears(next, MAX_YEARS)) {
+                setToDate(addYears(next, MAX_YEARS));
+              }
+            }}
+          />
+        </div>
+        <div className={styles.dateSep}>—</div>
+        <div className={styles.dateField}>
+          <label className={styles.dateLabel}>עד תאריך</label>
+          <input
+            type="date"
+            className={styles.dateInput}
+            value={toDate}
+            min={fromDate}
+            max={[todayStr, addYears(fromDate, MAX_YEARS)].sort().at(0)}
+            onChange={(e) => {
+              const next = e.target.value;
+              setToDate(next);
+              if (fromDate < addYears(next, -MAX_YEARS)) {
+                setFromDate(addYears(next, -MAX_YEARS));
+              }
+            }}
+          />
+        </div>
       </div>
 
       {loading ? (
@@ -68,7 +124,7 @@ export function StatsPage({ user }) {
         <>
           <div className={styles.statsGrid}>
             {[
-              { icon: "📅", value: totalEvents, label: "אירועים השנה" },
+              { icon: "📅", value: totalEvents, label: "אירועים בתקופה" },
               { icon: "⭐", value: rating > 0 ? rating.toFixed(1) : "—", label: "דירוג ממוצע" },
               { icon: "⏳", value: statusMap["pending"] ?? 0, label: "בקשות ממתינות" },
             ].map((s, i) => (
@@ -82,7 +138,9 @@ export function StatsPage({ user }) {
 
           {/* עמודות חודש */}
           <div className={styles.chartCard} style={{ marginBottom: 24 }}>
-            <div className={styles.chartTitle}>📅 אירועים לפי חודש — {period}</div>
+            <div className={styles.chartTitle}>
+              📅 אירועים לפי חודש — {fromDate} עד {toDate}
+            </div>
             <div className={styles.barChart}>
               {monthlyData.map((d, i) => (
                 <div key={i} className={styles.barCol}>
@@ -93,7 +151,7 @@ export function StatsPage({ user }) {
                     />
                   </div>
                   <div className={styles.barCount}>{d.events > 0 ? d.events : ""}</div>
-                  <div className={styles.barLabel}>{d.month}</div>
+                  <div className={styles.barLabel}>{d.label}</div>
                 </div>
               ))}
             </div>
@@ -128,7 +186,7 @@ export function StatsPage({ user }) {
             {/* סיכום סטטוס */}
             <div className={styles.chartCard}>
               <div className={styles.chartTitle} style={{ marginBottom: 20 }}>
-                📋 סיכום סטטוסים (כולל)
+                📋 סיכום סטטוסים
               </div>
               <div className={styles.statusSummary}>
                 {[

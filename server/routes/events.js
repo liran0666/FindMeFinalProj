@@ -76,36 +76,40 @@ function verifyToken(req, res, next) {
 
 //קבלת סטטיסטיקות לצלם
 router.get("/stats", verifyToken, async (req, res) => {
-  const year = parseInt(req.query.year) || new Date().getFullYear();
+  const today = new Date().toISOString().split("T")[0];
+  const currentYear = new Date().getFullYear();
+  const from = req.query.from || `${currentYear}-01-01`;
+  const to = req.query.to || today;
   try {
     const db = getDB();
 
     //אירועים לפי חודש
     const [monthly] = await db.query(
-      `SELECT MONTH(date) AS month, COUNT(*) AS events
+      `SELECT YEAR(date) AS year, MONTH(date) AS month, COUNT(*) AS events
        FROM events
-       WHERE photographer_id = ? AND YEAR(date) = ? AND status = 'active'
-       GROUP BY MONTH(date)`,
-      [req.user.id, year],
+       WHERE photographer_id = ? AND date BETWEEN ? AND ? AND status = 'active'
+       GROUP BY YEAR(date), MONTH(date)
+       ORDER BY year, month`,
+      [req.user.id, from, to],
     );
 
     //סוג אירוע
     const [types] = await db.query(
       `SELECT name, COUNT(*) AS count
        FROM events
-       WHERE photographer_id = ? AND YEAR(date) = ? AND status = 'active'
+       WHERE photographer_id = ? AND date BETWEEN ? AND ? AND status = 'active'
        GROUP BY name
        ORDER BY count DESC`,
-      [req.user.id, year],
+      [req.user.id, from, to],
     );
 
     // לפי סטטוס
     const [statusTotals] = await db.query(
       `SELECT status, COUNT(*) AS count
        FROM events
-       WHERE photographer_id = ?
+       WHERE photographer_id = ? AND date BETWEEN ? AND ?
        GROUP BY status`,
-      [req.user.id],
+      [req.user.id, from, to],
     );
 
     //דירוג צלם
