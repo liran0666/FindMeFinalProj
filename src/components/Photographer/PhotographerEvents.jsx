@@ -410,12 +410,14 @@ function EventDetailsModal({ event, onClose, onGallery, onUpdate, onRemove }) {
               )}
             </div>
             <div className={styles.modalActionRow}>
-              <button
-                className={styles.viewBtn}
-                onClick={() => setEditing(true)}
-              >
-                ✏️ עריכה
-              </button>
+              {!isPast(event.date) && (
+                <button
+                  className={styles.viewBtn}
+                  onClick={() => setEditing(true)}
+                >
+                  ✏️ עריכה
+                </button>
+              )}
               <button
                 className={styles.galleryModalBtn}
                 onClick={() => {

@@ -119,7 +119,6 @@ export function PhotographerProfile() {
         ← חזרה לחיפוש
       </button>
 
-      
       <div className={styles.hero}>
         <div className={styles.heroBanner}></div>
         <div className={styles.heroBody}>
@@ -158,7 +157,6 @@ export function PhotographerProfile() {
       </div>
 
       <div className={styles.contentGrid}>
-        
         <div>
           {p.services.length > 0 && (
             <div className={styles.sectionCard}>
@@ -174,7 +172,7 @@ export function PhotographerProfile() {
           )}
 
           <div className={styles.sectionCard}>
-            <div className={styles.sectionTitle}>⭐ ביקורות</div>
+            <div className={styles.sectionTitle}>⭐ דירוגים</div>
             {reviews.length === 0 ? (
               <div className={styles.noReviews}>אין ביקורות עדיין</div>
             ) : (
@@ -199,7 +197,6 @@ export function PhotographerProfile() {
           </div>
         </div>
 
-        
         <div>
           <div className={styles.sectionCard}>
             <div className={styles.sectionTitle}>📊 נתונים</div>
@@ -229,7 +226,6 @@ export function PhotographerProfile() {
         </div>
       </div>
 
-      
       {modalOpen && (
         <div
           className={styles.modalOverlay}

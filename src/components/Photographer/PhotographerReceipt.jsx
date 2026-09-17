@@ -114,7 +114,7 @@ export function PhotographerReceipt({ user }) {
                 min="0"
                 step="0.01"
                 value={amount}
-                onChange={(e) => setAmount(e.target.value)}
+                onChange={(e) => {if (e.target.value.length <= 7) {setAmount(e.target.value);}}}
                 placeholder="0.00"
               />
             </div>

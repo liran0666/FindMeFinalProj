@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import styles from "./CustomerEventsPage.module.css";
 
 const API = "http://localhost:5000/api/events";
@@ -68,9 +68,11 @@ const FILTERS = [
 
 export default function CustomerEventsPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const fil = searchParams.get("fil");
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState("all");
+  const [filter, setFilter] = useState(fil || "all");
   const [detailsEvent, setDetailsEvent] = useState(null);
   const [ratingEvent, setRatingEvent] = useState(null);
 
@@ -156,7 +158,6 @@ export default function CustomerEventsPage() {
         </div>
       )}
 
-    
       {!loading && events.length > 0 && (
         <div className={styles.filterRow}>
           {FILTERS.map((f) => (
@@ -174,7 +175,6 @@ export default function CustomerEventsPage() {
         </div>
       )}
 
-    
       {loading ? (
         <div className={styles.emptyState}>
           <div className={styles.emptySpinner} />
@@ -255,7 +255,7 @@ function EventCard({ ev, onDetails, onRate, onGallery }) {
           <span className={styles.cardMetaItem}>📷 {ev.photographerName}</span>
           <span className={styles.cardMetaItem}>📍 {ev.place}</span>
         </div>
-        
+
         <div className={styles.miniTimeline}>
           {["נשלחה", "אושרה", "הסתיים"].map((s, i) => {
             const active = step > i || step === i + 1;
@@ -281,7 +281,6 @@ function EventCard({ ev, onDetails, onRate, onGallery }) {
         </div>
       </div>
 
-      
       <div className={styles.cardActions}>
         <button className={styles.detailsBtn} onClick={onDetails}>
           פרטים
@@ -324,7 +323,6 @@ function DetailsModal({ event: ev, onClose, onRate }) {
           ✕
         </button>
 
-        
         <div className={styles.detailsHero}>
           <div className={styles.detailsHeroIcon}>{getIcon(ev.name)}</div>
           <div className={styles.detailsHeroTitle}>{ev.name}</div>
@@ -333,7 +331,6 @@ function DetailsModal({ event: ev, onClose, onRate }) {
           </span>
         </div>
 
-        
         <div className={styles.detailsGrid}>
           {[
             { icon: "📅", label: "תאריך", value: formatDate(ev.date) },
@@ -364,7 +361,6 @@ function DetailsModal({ event: ev, onClose, onRate }) {
           )}
         </div>
 
-        
         <div className={styles.timelineTitle}>מצב האירוע</div>
         {ev.status === "declined" ? (
           <div className={styles.declinedNote}>❌ הבקשה נדחתה על ידי הצלם</div>
@@ -405,7 +401,6 @@ function DetailsModal({ event: ev, onClose, onRate }) {
           </div>
         )}
 
-        
         {step === 3 && ev.customer_rating !== null && (
           <div className={styles.detailsRated}>
             <div className={styles.detailsRatedLabel}>הדירוג שלך</div>

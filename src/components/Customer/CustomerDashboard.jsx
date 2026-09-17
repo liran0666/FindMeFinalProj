@@ -89,15 +89,35 @@ export default function CustomerDashboard({ user }) {
       {!loading && events.length > 0 && (
         <div className={styles.statsRow}>
           {[
-            { icon: "📋", value: events.length, label: "סה״כ אירועים" },
-            { icon: "⏳", value: totalPending, label: "ממתינים לאישור" },
-            { icon: "📅", value: upcoming.length, label: "אירועים קרובים" },
-            { icon: "✅", value: totalPast, label: "הושלמו" },
+            {
+              icon: "📋",
+              value: events.length,
+              label: "סה״כ אירועים",
+              status: "all",
+            },
+            {
+              icon: "⏳",
+              value: totalPending,
+              label: "ממתינים לאישור",
+              status: "pending",
+            },
+            {
+              icon: "📅",
+              value: upcoming.length,
+              label: "אירועים קרובים",
+              status: "active",
+            },
+            {
+              icon: "✅",
+              value: totalPast,
+              label: "הושלמו",
+              status: "done",
+            },
           ].map((s, i) => (
             <div
               key={i}
               className={styles.statCube}
-              onClick={() => navigate("/customer/events")}
+              onClick={() => navigate(`/customer/events?fil=${s.status}`)}
               style={{ cursor: "pointer" }}
             >
               <div className={styles.statIcon}>{s.icon}</div>
